@@ -14,7 +14,7 @@ import { ArchiveRecord, DiagramData, FileData } from '@/store/dataStore';
 
 export default function ArchivePage() {
   const router = useRouter();
-  const { records, removeFromArchive } = useDataStore();
+  const { records, removeFromArchive, setFileData } = useDataStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'name'>('date');
   const [filterType, setFilterType] = useState<'all' | 'file' | 'diagram'>('all');
@@ -39,6 +39,14 @@ export default function ArchivePage() {
 
   const handleLoadDiagram = (id: string) => {
     router.push(`/text-visuals?id=${id}`);
+  };
+
+  const handleViewFile = (record: ArchiveRecord) => {
+    if (record.type === 'file') {
+      const fileData = record.data as FileData;
+      setFileData(fileData);
+      router.push('/visualize');
+    }
   };
 
   return (
@@ -107,15 +115,7 @@ export default function ArchivePage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          try {
-                            const fileData = record.data as FileData;
-                            window.open(URL.createObjectURL(fileData.file), '_blank');
-                          } catch (error) {
-                            toast.error('Failed to open file');
-                            console.error('Error opening file:', error);
-                          }
-                        }}
+                        onClick={() => handleViewFile(record)}
                       >
                         View
                       </Button>
