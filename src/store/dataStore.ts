@@ -22,14 +22,17 @@ export type ArchiveRecord = {
 
 interface DataStore {
   records: ArchiveRecord[];
+  fileData: any;
   addToArchive: (record: Omit<ArchiveRecord, 'id' | 'uploadDate'>) => void;
   removeFromArchive: (id: string) => void;
+  setFileData: (data: any) => void;
 }
 
 export const useDataStore = create<DataStore>()(
   persist(
     (set) => ({
       records: [],
+      fileData: null,
       addToArchive: (record) =>
         set((state) => ({
           records: [
@@ -45,6 +48,7 @@ export const useDataStore = create<DataStore>()(
         set((state) => ({
           records: state.records.filter((record) => record.id !== id),
         })),
+      setFileData: (data) => set({ fileData: data }),
     }),
     {
       name: 'data-store',
