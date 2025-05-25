@@ -3,11 +3,18 @@ import { persist } from 'zustand/middleware';
 import { Node, Edge } from 'reactflow';
 
 export type FileData = {
-  file: File;
-  parsedData: any[];
+  type: 'file';
+  fileName: string;
+  rowCount: number;
+  data: {
+    headers: string[];
+    rows: any[][];
+  };
 };
 
 export type DiagramData = {
+  type: 'diagram';
+  name: string;
   nodes: Node[];
   edges: Edge[];
 };
@@ -22,10 +29,10 @@ export type ArchiveRecord = {
 
 interface DataStore {
   records: ArchiveRecord[];
-  fileData: any;
+  fileData: FileData | null;
   addToArchive: (record: Omit<ArchiveRecord, 'id' | 'uploadDate'>) => void;
   removeFromArchive: (id: string) => void;
-  setFileData: (data: any) => void;
+  setFileData: (data: FileData | null) => void;
 }
 
 export const useDataStore = create<DataStore>()(

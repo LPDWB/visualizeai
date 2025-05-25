@@ -3,12 +3,7 @@
 import { useState, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
-import { useDataStore } from '@/store/dataStore';
-
-type FileData = {
-  headers: string[];
-  rows: any[][];
-};
+import { useDataStore, FileData } from '@/store/dataStore';
 
 export default function FileUpload() {
   const [error, setError] = useState<string | null>(null);
@@ -36,13 +31,19 @@ export default function FileUpload() {
             
             const headers = results.data[0] as string[];
             const rows = results.data.slice(1, 101) as any[][]; // Get first 100 rows
-            const fileData = { headers, rows };
+            
+            const fileData: FileData = {
+              type: 'file',
+              fileName: file.name,
+              rowCount: results.data.length - 1,
+              data: { headers, rows }
+            };
             
             setFileData(fileData);
             addToArchive({
-              fileName: file.name,
-              rowCount: results.data.length - 1,
-              data: fileData,
+              type: 'file',
+              name: file.name,
+              data: fileData
             });
           },
           error: (error) => {
@@ -62,13 +63,19 @@ export default function FileUpload() {
 
         const headers = jsonData[0] as string[];
         const rows = jsonData.slice(1, 101) as any[][]; // Get first 100 rows
-        const fileData = { headers, rows };
+        
+        const fileData: FileData = {
+          type: 'file',
+          fileName: file.name,
+          rowCount: jsonData.length - 1,
+          data: { headers, rows }
+        };
         
         setFileData(fileData);
         addToArchive({
-          fileName: file.name,
-          rowCount: jsonData.length - 1,
-          data: fileData,
+          type: 'file',
+          name: file.name,
+          data: fileData
         });
       } else {
         setError('Unsupported file format. Please upload a CSV or XLSX file.');
@@ -132,12 +139,12 @@ export default function FileUpload() {
         </div>
       )}
 
-      {fileData && (
+      {fileData && fileData.type === 'file' && (
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
               <tr>
-                {fileData.headers.map((header, index) => (
+                {fileData.data.headers.map((header, index) => (
                   <th key={index} scope="col" className="px-6 py-3">
                     {header}
                   </th>
@@ -145,7 +152,7 @@ export default function FileUpload() {
               </tr>
             </thead>
             <tbody>
-              {fileData.rows.map((row, rowIndex) => (
+              {fileData.data.rows.map((row, rowIndex) => (
                 <tr
                   key={rowIndex}
                   className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
