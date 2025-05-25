@@ -33,7 +33,7 @@ export default function VisualizePage() {
   const [xAxis, setXAxis] = useState<string>('');
   const [yAxis, setYAxis] = useState<string>('');
 
-  if (!fileData) {
+  if (!fileData || fileData.type !== 'file') {
     return (
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-4">Visualize</h1>
@@ -50,9 +50,9 @@ export default function VisualizePage() {
     );
   }
 
-  const chartData = fileData.rows.map((row: Record<string, any>) => {
-    const xIndex = fileData.headers.indexOf(xAxis);
-    const yIndex = fileData.headers.indexOf(yAxis);
+  const chartData = fileData.data.rows.map((row: Record<string, any>) => {
+    const xIndex = fileData.data.headers.indexOf(xAxis);
+    const yIndex = fileData.data.headers.indexOf(yAxis);
     return {
       name: row[xIndex]?.toString() || '',
       value: Number(row[yIndex]) || 0,
@@ -145,7 +145,7 @@ export default function VisualizePage() {
               className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
               <option value="">Select X-Axis</option>
-              {fileData.headers.map((header: string) => (
+              {fileData.data.headers.map((header: string) => (
                 <option key={header} value={header}>
                   {header}
                 </option>
@@ -164,7 +164,7 @@ export default function VisualizePage() {
               className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
               <option value="">Select Y-Axis</option>
-              {fileData.headers.map((header: string) => (
+              {fileData.data.headers.map((header: string) => (
                 <option key={header} value={header}>
                   {header}
                 </option>
