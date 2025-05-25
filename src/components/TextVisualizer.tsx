@@ -37,8 +37,8 @@ export default function TextVisualizer({ initialData }: TextVisualizerProps) {
 
   useEffect(() => {
     if (initialData) {
-      setNodes(initialData.nodes as Node[]);
-      setEdges(initialData.edges as Edge[]);
+      setNodes(initialData.nodes);
+      setEdges(initialData.edges);
     }
   }, [initialData, setNodes, setEdges]);
 
@@ -129,7 +129,12 @@ export default function TextVisualizer({ initialData }: TextVisualizerProps) {
     addToArchive({
       type: 'diagram',
       name: diagramName,
-      data: { nodes, edges },
+      data: {
+        type: 'diagram',
+        name: diagramName,
+        nodes,
+        edges
+      }
     });
 
     toast.success('Diagram saved to archive');
