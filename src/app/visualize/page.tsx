@@ -22,6 +22,11 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 type ChartType = 'line' | 'bar' | 'pie';
 
+interface ChartDataPoint {
+  name: string;
+  value: number;
+}
+
 export default function VisualizePage() {
   const fileData = useDataStore((state) => state.fileData);
   const [chartType, setChartType] = useState<ChartType>('line');
@@ -45,7 +50,7 @@ export default function VisualizePage() {
     );
   }
 
-  const chartData = fileData.rows.map((row) => {
+  const chartData = fileData.rows.map((row: Record<string, any>) => {
     const xIndex = fileData.headers.indexOf(xAxis);
     const yIndex = fileData.headers.indexOf(yAxis);
     return {
@@ -95,7 +100,7 @@ export default function VisualizePage() {
                 outerRadius={150}
                 label
               >
-                {chartData.map((_, index) => (
+                {chartData.map((_: ChartDataPoint, index: number) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
@@ -140,7 +145,7 @@ export default function VisualizePage() {
               className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
               <option value="">Select X-Axis</option>
-              {fileData.headers.map((header) => (
+              {fileData.headers.map((header: string) => (
                 <option key={header} value={header}>
                   {header}
                 </option>
@@ -159,7 +164,7 @@ export default function VisualizePage() {
               className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
               <option value="">Select Y-Axis</option>
-              {fileData.headers.map((header) => (
+              {fileData.headers.map((header: string) => (
                 <option key={header} value={header}>
                   {header}
                 </option>
