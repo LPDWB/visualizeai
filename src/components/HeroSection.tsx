@@ -4,6 +4,7 @@ import { motion, useScroll, useTransform, useSpring, useMotionValue, useMotionVa
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowDown, Sparkles } from 'lucide-react';
+import { GlowingBackground } from '@/components/ui/glowing-background';
 
 interface HeroSectionProps {
   onStartClick?: () => void;
@@ -87,13 +88,7 @@ export default function HeroSection({ onStartClick }: HeroSectionProps) {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-background to-background/80">
-      {/* Animated background gradient */}
-      <motion.div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(var(--primary-rgb), 0.15), transparent 40%)`,
-        }}
-      />
+      <GlowingBackground />
 
       <div className="container max-w-7xl mx-auto px-4 relative z-10">
         <motion.div
@@ -103,22 +98,29 @@ export default function HeroSection({ onStartClick }: HeroSectionProps) {
           className="text-center space-y-6 mb-16"
         >
           <motion.h1
-            className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60"
+            className="text-4xl md:text-5xl font-bold relative"
             variants={textVariants}
           >
-            {title.split(' ').map((word, i) => (
-              <motion.span
-                key={i}
-                className="inline-block mr-2"
-                variants={letterVariants}
-              >
-                {word}
-              </motion.span>
-            ))}
+            <span className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/0 blur-xl opacity-50" 
+                  style={{
+                    transform: `translate(${mousePosition.x * 0.05}px, ${mousePosition.y * 0.05}px)`,
+                  }}
+            />
+            <span className="relative bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+              {title.split(' ').map((word, i) => (
+                <motion.span
+                  key={i}
+                  className="inline-block mr-2"
+                  variants={letterVariants}
+                >
+                  {word}
+                </motion.span>
+              ))}
+            </span>
           </motion.h1>
 
           <motion.p
-            className="text-xl text-muted-foreground max-w-2xl mx-auto"
+            className="text-xl text-muted-foreground max-w-2xl mx-auto backdrop-blur-sm bg-background/30 p-4 rounded-lg border border-white/10"
             variants={textVariants}
           >
             {description}
@@ -138,7 +140,7 @@ export default function HeroSection({ onStartClick }: HeroSectionProps) {
               >
                 <Button
                   size="lg"
-                  className="group relative overflow-hidden w-full"
+                  className="group relative overflow-hidden w-full backdrop-blur-sm bg-primary/90 hover:bg-primary"
                 >
                   <Sparkles className="w-4 h-4 mr-2 group-hover:animate-spin" />
                   Начать сейчас
@@ -156,7 +158,7 @@ export default function HeroSection({ onStartClick }: HeroSectionProps) {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="group w-full"
+                  className="group w-full backdrop-blur-sm bg-background/30 hover:bg-background/50"
                 >
                   Узнать больше
                 </Button>
@@ -182,7 +184,9 @@ export default function HeroSection({ onStartClick }: HeroSectionProps) {
           >
             <ArrowDown className="w-6 h-6 text-muted-foreground" />
           </motion.div>
-          <span className="text-sm text-muted-foreground">Scroll to explore</span>
+          <span className="text-sm text-muted-foreground backdrop-blur-sm bg-background/30 px-4 py-2 rounded-full border border-white/10">
+            Scroll to explore
+          </span>
         </motion.div>
       </div>
     </section>

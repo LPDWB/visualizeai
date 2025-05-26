@@ -3,7 +3,8 @@
 import { motion, useInView } from 'framer-motion';
 import { ArrowUp, BarChart3, LineChart, PieChart, CircleDot, ScatterChart, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useEffect, useState, forwardRef } from 'react';
+import { useEffect, useState, forwardRef, useRef } from 'react';
+import { GlowingBackground } from '@/components/ui/glowing-background';
 
 const visualizations = [
   {
@@ -44,9 +45,11 @@ const visualizations = [
   }
 ];
 
-const VisualizationShowcase = forwardRef<HTMLDivElement>((_, ref) => {
+const VisualizationShowcase = forwardRef<HTMLDivElement>((_, forwardedRef) => {
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const internalRef = useRef<HTMLDivElement>(null);
+  const ref = forwardedRef || internalRef;
+  const isInView = useInView(ref as React.RefObject<HTMLDivElement>, { once: true, margin: "-100px" });
 
   useEffect(() => {
     const handleScroll = () => {
@@ -67,14 +70,16 @@ const VisualizationShowcase = forwardRef<HTMLDivElement>((_, ref) => {
       initial={{ opacity: 0, y: 50 }}
       animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="py-20 bg-muted/30"
+      className="py-20 relative"
     >
-      <div className="container max-w-7xl mx-auto px-4">
+      <GlowingBackground className="opacity-50" />
+
+      <div className="container max-w-7xl mx-auto px-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-16 backdrop-blur-sm bg-background/30 p-8 rounded-2xl border border-white/10"
         >
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Типы визуализаций, доступные в VisualizeAI
@@ -92,7 +97,7 @@ const VisualizationShowcase = forwardRef<HTMLDivElement>((_, ref) => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="group relative overflow-hidden rounded-xl border bg-card hover:shadow-lg transition-all duration-300"
+              className="group relative overflow-hidden rounded-xl border border-white/10 backdrop-blur-sm bg-background/30 hover:bg-background/50 transition-all duration-300"
             >
               <div className="p-6">
                 <div className="mb-4">
@@ -118,7 +123,7 @@ const VisualizationShowcase = forwardRef<HTMLDivElement>((_, ref) => {
         <Button
           onClick={scrollToTop}
           size="icon"
-          className="rounded-full shadow-lg hover:shadow-xl transition-shadow duration-300"
+          className="rounded-full shadow-lg hover:shadow-xl transition-shadow duration-300 backdrop-blur-sm bg-background/30 hover:bg-background/50 border border-white/10"
         >
           <ArrowUp className="h-4 w-4" />
         </Button>
