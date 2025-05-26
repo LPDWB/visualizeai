@@ -5,7 +5,9 @@ interface DataStore {
   setParsedData: (data: any[]) => void;
 }
 
-export const useDataStore = create<DataStore>((set) => ({
+const useDataStore = create<DataStore>((set) => ({
   parsedData: [],
   setParsedData: (data) => set({ parsedData: data }),
-})); 
+}));
+
+export { useDataStore }; 
