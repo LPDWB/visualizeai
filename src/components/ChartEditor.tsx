@@ -25,9 +25,17 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'] as const;
 
 type ChartType = 'bar' | 'line' | 'pie';
+type ChartDataPoint = {
+  name: string;
+  value: number;
+};
+
+interface ParsedDataRow {
+  [key: string]: string | number;
+}
 
 export default function ChartEditor() {
   const { parsedData } = useDataStore();
@@ -41,7 +49,7 @@ export default function ChartEditor() {
   const columns = parsedData.length > 0 ? Object.keys(parsedData[0]) : [];
 
   // Transform data for chart
-  const chartData = parsedData.map((row: any) => ({
+  const chartData: ChartDataPoint[] = parsedData.map((row: ParsedDataRow) => ({
     name: row[xAxis]?.toString() || '',
     value: Number(row[yAxis]) || 0,
   }));
@@ -124,7 +132,7 @@ export default function ChartEditor() {
                     outerRadius={150}
                     label
                   >
-                    {chartData.map((_, index) => (
+                    {chartData.map((_, index: number) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -165,7 +173,7 @@ export default function ChartEditor() {
                   <SelectValue placeholder="Select X-axis" />
                 </SelectTrigger>
                 <SelectContent>
-                  {columns.map((column) => (
+                  {columns.map((column: string) => (
                     <SelectItem key={column} value={column}>
                       {column}
                     </SelectItem>
@@ -181,7 +189,7 @@ export default function ChartEditor() {
                   <SelectValue placeholder="Select Y-axis" />
                 </SelectTrigger>
                 <SelectContent>
-                  {columns.map((column) => (
+                  {columns.map((column: string) => (
                     <SelectItem key={column} value={column}>
                       {column}
                     </SelectItem>
