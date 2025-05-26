@@ -24,6 +24,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { ChevronDown, ChevronUp, Download, Save, Filter, Loader2 } from 'lucide-react';
+import { GlowingBackground } from '@/components/ui/glowing-background';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'] as const;
 
@@ -35,6 +37,13 @@ type ChartDataPoint = {
 
 interface ParsedDataRow {
   [key: string]: string | number;
+}
+
+interface DataSummary {
+  min: number;
+  max: number;
+  avg: number;
+  count: number;
 }
 
 // Animation variants
@@ -124,16 +133,44 @@ export default function ChartEditor() {
   const [xAxis, setXAxis] = useState<string>('');
   const [yAxis, setYAxis] = useState<string>('');
   const [isExporting, setIsExporting] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [topN, setTopN] = useState<number>(0);
+  const [selectedValues, setSelectedValues] = useState<string[]>([]);
   const controls = useAnimation();
 
   // Get unique column names from parsed data
   const columns = parsedData.length > 0 ? Object.keys(parsedData[0]) : [];
 
-  // Transform data for chart
-  const chartData: ChartDataPoint[] = parsedData.map((row: ParsedDataRow) => ({
-    name: row[xAxis]?.toString() || '',
-    value: Number(row[yAxis]) || 0,
-  }));
+  // Transform and filter data for chart
+  const chartData: ChartDataPoint[] = parsedData
+    .map((row: ParsedDataRow) => ({
+      name: row[xAxis]?.toString() || '',
+      value: Number(row[yAxis]) || 0,
+    }))
+    .filter(point => {
+      if (topN > 0) {
+        return true; // Will be sorted and sliced later
+      }
+      if (selectedValues.length > 0) {
+        return selectedValues.includes(point.name);
+      }
+      return true;
+    })
+    .sort((a, b) => b.value - a.value)
+    .slice(0, topN || undefined);
+
+  // Calculate data summary
+  const dataSummary: DataSummary = chartData.reduce(
+    (acc, point) => ({
+      min: Math.min(acc.min, point.value),
+      max: Math.max(acc.max, point.value),
+      avg: acc.avg + point.value,
+      count: acc.count + 1,
+    }),
+    { min: Infinity, max: -Infinity, avg: 0, count: 0 }
+  );
+  dataSummary.avg = dataSummary.avg / dataSummary.count;
 
   useEffect(() => {
     controls.start("animate");
@@ -182,9 +219,10 @@ export default function ChartEditor() {
           initial="initial"
           animate="animate"
           exit="exit"
-          className="h-[400px]"
+          className="h-[400px] relative"
           ref={chartRef}
         >
+          <GlowingBackground className="opacity-30" />
           <ResponsiveContainer width="100%" height="100%">
             <>
               {chartType === 'line' && (
@@ -317,29 +355,38 @@ export default function ChartEditor() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
-      <Card className="p-6">
+    <div className="max-w-7xl mx-auto py-8 px-4 space-y-8">
+      {/* Page Header */}
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold">Визуализация данных</h1>
+        <p className="text-muted-foreground">
+          Визуализируйте ваши данные. Выберите тип графика, оси и начните анализ.
+        </p>
+      </div>
+
+      {/* Control Panel */}
+      <Card className="p-6 backdrop-blur-sm bg-background/50">
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Chart Type</Label>
+              <Label>Тип графика</Label>
               <Select value={chartType} onValueChange={(value: ChartType) => setChartType(value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select chart type" />
+                  <SelectValue placeholder="Выберите тип графика" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="bar">Bar Chart</SelectItem>
-                  <SelectItem value="line">Line Chart</SelectItem>
-                  <SelectItem value="pie">Pie Chart</SelectItem>
+                  <SelectItem value="bar">Столбчатый график</SelectItem>
+                  <SelectItem value="line">Линейный график</SelectItem>
+                  <SelectItem value="pie">Круговая диаграмма</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>X-Axis</Label>
+              <Label>Ось X</Label>
               <Select value={xAxis} onValueChange={setXAxis}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select X-axis" />
+                  <SelectValue placeholder="Выберите ось X" />
                 </SelectTrigger>
                 <SelectContent>
                   {columns.map((column: string) => (
@@ -352,10 +399,10 @@ export default function ChartEditor() {
             </div>
 
             <div className="space-y-2">
-              <Label>Y-Axis</Label>
+              <Label>Ось Y</Label>
               <Select value={yAxis} onValueChange={setYAxis}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select Y-axis" />
+                  <SelectValue placeholder="Выберите ось Y" />
                 </SelectTrigger>
                 <SelectContent>
                   {columns.map((column: string) => (
@@ -368,28 +415,133 @@ export default function ChartEditor() {
             </div>
           </div>
 
-          <div className="bg-background/50 backdrop-blur-sm rounded-lg border border-border/50 p-4">
-            {renderChart()}
-          </div>
+          {/* Filters Toggle */}
+          <Button
+            variant="ghost"
+            className="w-full flex items-center justify-between"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <span className="flex items-center gap-2">
+              <Filter className="w-4 h-4" />
+              Фильтры
+            </span>
+            {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </Button>
 
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => handleExport('png')}
-              disabled={isExporting || !xAxis || !yAxis}
-            >
-              Export as PNG
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => handleExport('svg')}
-              disabled={isExporting || !xAxis || !yAxis}
-            >
-              Export as SVG
-            </Button>
-          </div>
+          {/* Filters Panel */}
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                  <div className="space-y-2">
+                    <Label>Показать топ N значений</Label>
+                    <Select
+                      value={topN.toString()}
+                      onValueChange={(value: string) => setTopN(Number(value))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите количество" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">Все значения</SelectItem>
+                        <SelectItem value="5">Топ 5</SelectItem>
+                        <SelectItem value="10">Топ 10</SelectItem>
+                        <SelectItem value="20">Топ 20</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </Card>
+
+      {/* Chart Title */}
+      {xAxis && yAxis && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center"
+        >
+          <h2 className="text-xl font-semibold">
+            {chartType === 'bar' && 'Столбчатый график: '}
+            {chartType === 'line' && 'Линейный график: '}
+            {chartType === 'pie' && 'Круговая диаграмма: '}
+            {yAxis} по {xAxis}
+          </h2>
+        </motion.div>
+      )}
+
+      {/* Chart Area */}
+      <Card className="p-6 backdrop-blur-sm bg-background/50">
+        {isLoading ? (
+          <div className="h-[400px] flex items-center justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          renderChart()
+        )}
+      </Card>
+
+      {/* Data Summary */}
+      {chartData.length > 0 && (
+        <Card className="p-6 backdrop-blur-sm bg-background/50">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Минимум</p>
+              <p className="text-lg font-semibold">{dataSummary.min.toFixed(2)}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Максимум</p>
+              <p className="text-lg font-semibold">{dataSummary.max.toFixed(2)}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Среднее</p>
+              <p className="text-lg font-semibold">{dataSummary.avg.toFixed(2)}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Количество</p>
+              <p className="text-lg font-semibold">{dataSummary.count}</p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Action Buttons */}
+      <div className="flex justify-end gap-2">
+        <Button
+          variant="outline"
+          onClick={() => handleExport('png')}
+          disabled={isExporting || !xAxis || !yAxis}
+          className="gap-2"
+        >
+          <Download className="w-4 h-4" />
+          PNG
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => handleExport('svg')}
+          disabled={isExporting || !xAxis || !yAxis}
+          className="gap-2"
+        >
+          <Download className="w-4 h-4" />
+          SVG
+        </Button>
+        <Button
+          variant="outline"
+          disabled={!xAxis || !yAxis}
+          className="gap-2"
+        >
+          <Save className="w-4 h-4" />
+          Сохранить
+        </Button>
+      </div>
     </div>
   );
 } 
