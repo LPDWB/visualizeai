@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useStore } from '@/store/useStore';
-import { DataRow, FileData } from '@/types';
+import { DataRow } from '@/types';
 import {
   Card,
   CardContent,
@@ -30,7 +30,11 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  Cell,
 } from 'recharts';
+import { motion } from 'framer-motion';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 export default function VisualizePage() {
   const { currentFile } = useStore();
@@ -46,30 +50,69 @@ export default function VisualizePage() {
       [yAxis]: Number(row[yAxis]),
     }));
 
+    const CustomTooltip = ({ active, payload, label }: any) => {
+      if (active && payload && payload.length) {
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-background/80 backdrop-blur-sm p-3 rounded-lg border shadow-lg"
+          >
+            <p className="font-medium">{label}</p>
+            <p className="text-primary">{payload[0].value}</p>
+          </motion.div>
+        );
+      }
+      return null;
+    };
+
     switch (chartType) {
       case 'bar':
         return (
           <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey={xAxis} />
-              <YAxis />
-              <Tooltip />
+            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis 
+                dataKey={xAxis} 
+                angle={-45}
+                textAnchor="end"
+                height={70}
+                tick={{ fill: 'var(--muted-foreground)' }}
+              />
+              <YAxis tick={{ fill: 'var(--muted-foreground)' }} />
+              <Tooltip content={<CustomTooltip />} />
               <Legend />
-              <Bar dataKey={yAxis} fill="#8884d8" />
+              <Bar 
+                dataKey={yAxis} 
+                fill="var(--primary)"
+                radius={[4, 4, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         );
       case 'line':
         return (
           <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey={xAxis} />
-              <YAxis />
-              <Tooltip />
+            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis 
+                dataKey={xAxis}
+                angle={-45}
+                textAnchor="end"
+                height={70}
+                tick={{ fill: 'var(--muted-foreground)' }}
+              />
+              <YAxis tick={{ fill: 'var(--muted-foreground)' }} />
+              <Tooltip content={<CustomTooltip />} />
               <Legend />
-              <Line type="monotone" dataKey={yAxis} stroke="#8884d8" />
+              <Line 
+                type="monotone" 
+                dataKey={yAxis} 
+                stroke="var(--primary)"
+                strokeWidth={2}
+                dot={{ r: 4, fill: "var(--primary)" }}
+                activeDot={{ r: 6, fill: "var(--primary)" }}
+              />
             </LineChart>
           </ResponsiveContainer>
         );
@@ -84,10 +127,14 @@ export default function VisualizePage() {
                 cx="50%"
                 cy="50%"
                 outerRadius={150}
-                fill="#8884d8"
-                label
-              />
-              <Tooltip />
+                fill="var(--primary)"
+                label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+              >
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
@@ -177,7 +224,15 @@ export default function VisualizePage() {
               {currentFile.name} - {currentFile.data.length} rows
             </CardDescription>
           </CardHeader>
-          <CardContent>{renderChart()}</CardContent>
+          <CardContent>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              {renderChart()}
+            </motion.div>
+          </CardContent>
         </Card>
       </div>
     </div>
