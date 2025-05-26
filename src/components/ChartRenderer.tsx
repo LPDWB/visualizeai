@@ -64,6 +64,29 @@ export function ChartRenderer({ chartType, data, xAxis, yAxis, columns }: ChartR
     return null;
   };
 
+  // Custom XAxis tick renderer for truncating long labels and showing tooltip
+  const renderTruncatedTick = (props: any) => {
+    const { x, y, payload } = props;
+    const label = String(payload.value);
+    const maxLen = 14;
+    const displayLabel = label.length > maxLen ? label.slice(0, maxLen) + '…' : label;
+    return (
+      <g>
+        <title>{label}</title>
+        <text
+          x={x}
+          y={y + 10}
+          textAnchor="end"
+          fontSize={11}
+          fill="var(--muted-foreground)"
+          style={{ cursor: label.length > maxLen ? 'pointer' : 'default' }}
+        >
+          {displayLabel}
+        </text>
+      </g>
+    );
+  };
+
   switch (chartType) {
     case 'bar':
       return (
@@ -75,7 +98,7 @@ export function ChartRenderer({ chartType, data, xAxis, yAxis, columns }: ChartR
               angle={-45}
               textAnchor="end"
               height={90}
-              tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+              tick={renderTruncatedTick}
               interval={0}
             />
             <YAxis tick={{ fill: 'var(--muted-foreground)' }} />
@@ -106,7 +129,7 @@ export function ChartRenderer({ chartType, data, xAxis, yAxis, columns }: ChartR
               angle={-45}
               textAnchor="end"
               height={90}
-              tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+              tick={renderTruncatedTick}
               interval={0}
             />
             <YAxis tick={{ fill: 'var(--muted-foreground)' }} />
