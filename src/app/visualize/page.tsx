@@ -33,6 +33,7 @@ import {
   Cell,
 } from 'recharts';
 import { motion } from 'framer-motion';
+import { ChartRenderer } from '@/components/ChartRenderer';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
@@ -44,102 +45,19 @@ export default function VisualizePage() {
 
   const renderChart = () => {
     if (!currentFile || !xAxis || !yAxis) return null;
-
     const chartData = currentFile.data.map((row: DataRow) => ({
       [xAxis]: row[xAxis],
       [yAxis]: Number(row[yAxis]),
     }));
-
-    const CustomTooltip = ({ active, payload, label }: any) => {
-      if (active && payload && payload.length) {
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-background/80 backdrop-blur-sm p-3 rounded-lg border shadow-lg"
-          >
-            <p className="font-medium">{label}</p>
-            <p className="text-primary">{payload[0].value}</p>
-          </motion.div>
-        );
-      }
-      return null;
-    };
-
-    switch (chartType) {
-      case 'bar':
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis 
-                dataKey={xAxis} 
-                angle={-45}
-                textAnchor="end"
-                height={70}
-                tick={{ fill: 'var(--muted-foreground)' }}
-              />
-              <YAxis tick={{ fill: 'var(--muted-foreground)' }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend />
-              <Bar 
-                dataKey={yAxis} 
-                fill="var(--primary)"
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        );
-      case 'line':
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis 
-                dataKey={xAxis}
-                angle={-45}
-                textAnchor="end"
-                height={70}
-                tick={{ fill: 'var(--muted-foreground)' }}
-              />
-              <YAxis tick={{ fill: 'var(--muted-foreground)' }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey={yAxis} 
-                stroke="var(--primary)"
-                strokeWidth={2}
-                dot={{ r: 4, fill: "var(--primary)" }}
-                activeDot={{ r: 6, fill: "var(--primary)" }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        );
-      case 'pie':
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <PieChart>
-              <Pie
-                data={chartData}
-                dataKey={yAxis}
-                nameKey={xAxis}
-                cx="50%"
-                cy="50%"
-                outerRadius={150}
-                fill="var(--primary)"
-                label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-              >
-                {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        );
-    }
+    return (
+      <ChartRenderer
+        chartType={chartType}
+        data={chartData}
+        xAxis={xAxis}
+        yAxis={yAxis}
+        columns={currentFile.columns}
+      />
+    );
   };
 
   if (!currentFile) {
