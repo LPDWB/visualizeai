@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useDataStore } from '@/store/useDataStore';
 import { toPng, toSvg } from 'html-to-image';
 import { toast } from 'react-hot-toast';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import {
   LineChart,
   Line,
@@ -37,6 +37,52 @@ interface ParsedDataRow {
   [key: string]: string | number;
 }
 
+// Animation variants
+const chartVariants = {
+  initial: { opacity: 0, scale: 0.95 },
+  animate: { opacity: 1, scale: 1 },
+  exit: { opacity: 0, scale: 0.95 },
+};
+
+const barVariants = {
+  initial: { scaleY: 0, opacity: 0 },
+  animate: { 
+    scaleY: 1, 
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 20,
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const lineVariants = {
+  initial: { pathLength: 0, opacity: 0 },
+  animate: { 
+    pathLength: 1, 
+    opacity: 1,
+    transition: {
+      duration: 1,
+      ease: "easeInOut"
+    }
+  }
+};
+
+const pieVariants = {
+  initial: { scale: 0, opacity: 0 },
+  animate: { 
+    scale: 1, 
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 200,
+      damping: 20
+    }
+  }
+};
+
 export default function ChartEditor() {
   const { parsedData } = useDataStore();
   const chartRef = useRef<HTMLDivElement>(null);
@@ -44,6 +90,7 @@ export default function ChartEditor() {
   const [xAxis, setXAxis] = useState<string>('');
   const [yAxis, setYAxis] = useState<string>('');
   const [isExporting, setIsExporting] = useState(false);
+  const controls = useAnimation();
 
   // Get unique column names from parsed data
   const columns = parsedData.length > 0 ? Object.keys(parsedData[0]) : [];
@@ -53,6 +100,10 @@ export default function ChartEditor() {
     name: row[xAxis]?.toString() || '',
     value: Number(row[yAxis]) || 0,
   }));
+
+  useEffect(() => {
+    controls.start("animate");
+  }, [chartType, controls]);
 
   const handleExport = async (format: 'png' | 'svg') => {
     if (!chartRef.current) return;
@@ -93,11 +144,12 @@ export default function ChartEditor() {
       <AnimatePresence mode="wait">
         <motion.div
           key={chartType}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.3 }}
+          variants={chartVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
           className="h-[400px]"
+          ref={chartRef}
         >
           <ResponsiveContainer width="100%" height="100%">
             <>
@@ -106,9 +158,25 @@ export default function ChartEditor() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'var(--background)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius)',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                    }}
+                  />
                   <Legend />
-                  <Line type="monotone" dataKey="value" stroke="#8884d8" />
+                  <Line 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="var(--primary)"
+                    strokeWidth={2}
+                    dot={{ r: 4, fill: "var(--primary)" }}
+                    activeDot={{ r: 6, fill: "var(--primary)" }}
+                    animationDuration={1000}
+                    animationBegin={0}
+                  />
                 </LineChart>
               )}
               {chartType === 'bar' && (
@@ -116,9 +184,29 @@ export default function ChartEditor() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'var(--background)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius)',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                    }}
+                  />
                   <Legend />
-                  <Bar dataKey="value" fill="#8884d8" />
+                  <Bar 
+                    dataKey="value" 
+                    fill="var(--primary)"
+                    animationDuration={1000}
+                    animationBegin={0}
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    ))}
+                  </Bar>
                 </BarChart>
               )}
               {chartType === 'pie' && (
@@ -131,12 +219,25 @@ export default function ChartEditor() {
                     cy="50%"
                     outerRadius={150}
                     label
+                    animationDuration={1000}
+                    animationBegin={0}
                   >
-                    {chartData.map((_, index: number) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    {chartData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={COLORS[index % COLORS.length]}
+                        style={{ cursor: 'pointer' }}
+                      />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'var(--background)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius)',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                    }}
+                  />
                   <Legend />
                 </PieChart>
               )}
@@ -199,7 +300,7 @@ export default function ChartEditor() {
             </div>
           </div>
 
-          <div ref={chartRef} className="bg-card rounded-lg border p-4">
+          <div className="bg-background/50 backdrop-blur-sm rounded-lg border border-border/50 p-4">
             {renderChart()}
           </div>
 
