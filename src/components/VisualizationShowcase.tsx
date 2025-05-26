@@ -1,9 +1,9 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 import { ArrowUp, BarChart3, LineChart, PieChart, CircleDot, ScatterChart, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, forwardRef } from 'react';
 
 const visualizations = [
   {
@@ -44,8 +44,9 @@ const visualizations = [
   }
 ];
 
-export default function VisualizationShowcase() {
+const VisualizationShowcase = forwardRef<HTMLDivElement>((_, ref) => {
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   useEffect(() => {
     const handleScroll = () => {
@@ -61,7 +62,13 @@ export default function VisualizationShowcase() {
   };
 
   return (
-    <section className="py-20 bg-muted/30">
+    <motion.section
+      ref={ref}
+      initial={{ opacity: 0, y: 50 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="py-20 bg-muted/30"
+    >
       <div className="container max-w-7xl mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -77,7 +84,7 @@ export default function VisualizationShowcase() {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-8">
           {visualizations.map((viz, index) => (
             <motion.div
               key={viz.title}
@@ -116,6 +123,10 @@ export default function VisualizationShowcase() {
           <ArrowUp className="h-4 w-4" />
         </Button>
       </motion.div>
-    </section>
+    </motion.section>
   );
-} 
+});
+
+VisualizationShowcase.displayName = 'VisualizationShowcase';
+
+export default VisualizationShowcase; 
