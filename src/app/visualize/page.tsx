@@ -34,6 +34,7 @@ import {
 } from 'recharts';
 import { motion } from 'framer-motion';
 import { ChartRenderer } from '@/components/ChartRenderer';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
@@ -42,9 +43,26 @@ export default function VisualizePage() {
   const [chartType, setChartType] = useState<'bar' | 'line' | 'pie'>('bar');
   const [xAxis, setXAxis] = useState<string>('');
   const [yAxis, setYAxis] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+
+  const handleChartConfigChange = (setter: (v: any) => void) => (value: any) => {
+    setLoading(true);
+    setter(value);
+    setTimeout(() => setLoading(false), 500); // имитация загрузки
+  };
 
   const renderChart = () => {
-    if (!currentFile || !xAxis || !yAxis) return null;
+    if (!currentFile) return null;
+    if (!xAxis || !yAxis) {
+      return (
+        <div className="h-[400px] flex items-center justify-center text-muted-foreground text-center">
+          <span>Выберите тип графика и колонки для предпросмотра</span>
+        </div>
+      );
+    }
+    if (loading) {
+      return <Skeleton className="h-[400px] w-full" />;
+    }
     const chartData = currentFile.data.map((row: DataRow) => ({
       [xAxis]: row[xAxis],
       [yAxis]: Number(row[yAxis]),
@@ -91,9 +109,7 @@ export default function VisualizePage() {
             <div className="grid gap-4 md:grid-cols-1">
               <Select
                 value={chartType}
-                onValueChange={(value: 'bar' | 'line' | 'pie') =>
-                  setChartType(value)
-                }
+                onValueChange={handleChartConfigChange(setChartType)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select chart type" />
@@ -105,7 +121,7 @@ export default function VisualizePage() {
                 </SelectContent>
               </Select>
 
-              <Select value={xAxis} onValueChange={setXAxis}>
+              <Select value={xAxis} onValueChange={handleChartConfigChange(setXAxis)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select X axis" />
                 </SelectTrigger>
@@ -118,7 +134,7 @@ export default function VisualizePage() {
                 </SelectContent>
               </Select>
 
-              <Select value={yAxis} onValueChange={setYAxis}>
+              <Select value={yAxis} onValueChange={handleChartConfigChange(setYAxis)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Y axis" />
                 </SelectTrigger>
