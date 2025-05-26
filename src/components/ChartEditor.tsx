@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { useDataStore } from '@/store/dataStore';
+import { useDataStore } from '@/store/useDataStore';
 import { toPng, toSvg } from 'html-to-image';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
