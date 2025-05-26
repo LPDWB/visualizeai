@@ -82,8 +82,14 @@ const tooltipVariants = {
   }
 };
 
-export default function ChartEditor() {
-  const { parsedData } = useDataStore();
+interface ChartEditorProps {
+  data: {
+    headers: string[];
+    rows: Array<Record<string, any>>;
+  };
+}
+
+export default function ChartEditor({ data }: ChartEditorProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const [chartType, setChartType] = useState<ChartType>('bar');
   const [xAxis, setXAxis] = useState<string>('');
@@ -94,12 +100,12 @@ export default function ChartEditor() {
   const [topN, setTopN] = useState<number>(0);
   const controls = useAnimation();
 
-  // Get unique column names from parsed data
-  const columns = parsedData.length > 0 ? Object.keys(parsedData[0]) : [];
+  // Get unique column names from data
+  const columns = data.headers;
 
   // Transform data for chart
-  const rawChartData: ChartDataPoint[] = parsedData
-    .map((row: ParsedDataRow) => ({
+  const rawChartData: ChartDataPoint[] = data.rows
+    .map((row) => ({
       name: row[xAxis]?.toString() || '',
       value: Number(row[yAxis]) || 0,
     }));
