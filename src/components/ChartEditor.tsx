@@ -17,7 +17,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from 'recharts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -26,14 +25,10 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { ChevronDown, ChevronUp, Download, Save, Filter, Loader2 } from 'lucide-react';
 import { GlowingBackground } from '@/components/ui/glowing-background';
+import { ChartLegend } from '@/components/ui/chart-legend';
+import { useChartDataTransform, ChartType, ChartDataPoint } from '@/hooks/useChartDataTransform';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'] as const;
-
-type ChartType = 'bar' | 'line' | 'pie';
-type ChartDataPoint = {
-  name: string;
-  value: number;
-};
 
 interface ParsedDataRow {
   [key: string]: string | number;
@@ -68,45 +63,6 @@ const chartVariants = {
   }
 };
 
-const barVariants = {
-  initial: { scaleY: 0, opacity: 0 },
-  animate: { 
-    scaleY: 1, 
-    opacity: 1,
-    transition: {
-      type: "spring",
-      stiffness: 300,
-      damping: 20,
-      staggerChildren: 0.1
-    }
-  }
-};
-
-const lineVariants = {
-  initial: { pathLength: 0, opacity: 0 },
-  animate: { 
-    pathLength: 1, 
-    opacity: 1,
-    transition: {
-      duration: 1,
-      ease: "easeInOut"
-    }
-  }
-};
-
-const pieVariants = {
-  initial: { scale: 0, opacity: 0 },
-  animate: { 
-    scale: 1, 
-    opacity: 1,
-    transition: {
-      type: "spring",
-      stiffness: 200,
-      damping: 20
-    }
-  }
-};
-
 const tooltipVariants = {
   initial: { opacity: 0, y: 10 },
   animate: { 
@@ -136,32 +92,34 @@ export default function ChartEditor() {
   const [showFilters, setShowFilters] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [topN, setTopN] = useState<number>(0);
-  const [selectedValues, setSelectedValues] = useState<string[]>([]);
   const controls = useAnimation();
 
   // Get unique column names from parsed data
   const columns = parsedData.length > 0 ? Object.keys(parsedData[0]) : [];
 
-  // Transform and filter data for chart
-  const chartData: ChartDataPoint[] = parsedData
+  // Transform data for chart
+  const rawChartData: ChartDataPoint[] = parsedData
     .map((row: ParsedDataRow) => ({
       name: row[xAxis]?.toString() || '',
       value: Number(row[yAxis]) || 0,
-    }))
-    .filter(point => {
-      if (topN > 0) {
-        return true; // Will be sorted and sliced later
-      }
-      if (selectedValues.length > 0) {
-        return selectedValues.includes(point.name);
-      }
-      return true;
-    })
-    .sort((a, b) => b.value - a.value)
-    .slice(0, topN || undefined);
+    }));
+
+  // Use our custom hook for data transformation
+  const { transformedData, shouldSwitchToBar } = useChartDataTransform({
+    data: rawChartData,
+    chartType,
+    topN
+  });
+
+  // Switch to bar chart if needed
+  useEffect(() => {
+    if (shouldSwitchToBar) {
+      setChartType('bar');
+    }
+  }, [shouldSwitchToBar]);
 
   // Calculate data summary
-  const dataSummary: DataSummary = chartData.reduce(
+  const dataSummary: DataSummary = transformedData.reduce(
     (acc, point) => ({
       min: Math.min(acc.min, point.value),
       max: Math.max(acc.max, point.value),
@@ -211,146 +169,171 @@ export default function ChartEditor() {
       );
     }
 
+    const chartHeight = Math.max(400, Math.min(800, transformedData.length * 40));
+
     return (
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={chartType}
-          variants={chartVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          className="h-[400px] relative"
-          ref={chartRef}
-        >
-          <GlowingBackground className="opacity-30" />
-          <ResponsiveContainer width="100%" height="100%">
-            <>
-              {chartType === 'line' && (
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip 
-                    content={({ active, payload, label }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <motion.div
-                            variants={tooltipVariants}
-                            initial="initial"
-                            animate="animate"
-                            exit="exit"
-                            className="bg-background/80 backdrop-blur-sm p-2 rounded-lg border border-border shadow-lg"
-                          >
-                            <p className="font-medium">{label}</p>
-                            <p className="text-primary">{payload[0].value}</p>
-                          </motion.div>
-                        );
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr,300px] gap-4">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={chartType}
+            variants={chartVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="relative"
+            style={{ height: chartHeight }}
+            ref={chartRef}
+          >
+            <GlowingBackground className="opacity-30" />
+            <ResponsiveContainer width="100%" height="100%">
+              <>
+                {chartType === 'line' && (
+                  <LineChart data={transformedData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name"
+                      angle={-45}
+                      textAnchor="end"
+                      height={70}
+                      interval={0}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <motion.div
+                              variants={tooltipVariants}
+                              initial="initial"
+                              animate="animate"
+                              exit="exit"
+                              className="bg-background/80 backdrop-blur-sm p-2 rounded-lg border border-border shadow-lg"
+                            >
+                              <p className="font-medium">{label}</p>
+                              <p className="text-primary">{payload[0].value}</p>
+                            </motion.div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="value" 
+                      stroke="var(--primary)"
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: "var(--primary)" }}
+                      activeDot={{ r: 6, fill: "var(--primary)" }}
+                      animationDuration={1000}
+                      animationBegin={0}
+                    />
+                  </LineChart>
+                )}
+                {chartType === 'bar' && (
+                  <BarChart data={transformedData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name"
+                      angle={-45}
+                      textAnchor="end"
+                      height={70}
+                      interval={0}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <motion.div
+                              variants={tooltipVariants}
+                              initial="initial"
+                              animate="animate"
+                              exit="exit"
+                              className="bg-background/80 backdrop-blur-sm p-2 rounded-lg border border-border shadow-lg"
+                            >
+                              <p className="font-medium">{label}</p>
+                              <p className="text-primary">{payload[0].value}</p>
+                            </motion.div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Bar 
+                      dataKey="value" 
+                      fill="var(--primary)"
+                      animationDuration={1000}
+                      animationBegin={0}
+                    >
+                      {transformedData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                )}
+                {chartType === 'pie' && (
+                  <PieChart>
+                    <Pie
+                      data={transformedData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={Math.min(chartHeight * 0.4, 200)}
+                      label={({ name, percent }) => 
+                        `${name} (${(percent * 100).toFixed(0)}%)`
                       }
-                      return null;
-                    }}
-                  />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="var(--primary)"
-                    strokeWidth={2}
-                    dot={{ r: 4, fill: "var(--primary)" }}
-                    activeDot={{ r: 6, fill: "var(--primary)" }}
-                    animationDuration={1000}
-                    animationBegin={0}
-                    style={{ cursor: 'pointer' }}
-                  />
-                </LineChart>
-              )}
-              {chartType === 'bar' && (
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip 
-                    content={({ active, payload, label }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <motion.div
-                            variants={tooltipVariants}
-                            initial="initial"
-                            animate="animate"
-                            exit="exit"
-                            className="bg-background/80 backdrop-blur-sm p-2 rounded-lg border border-border shadow-lg"
-                          >
-                            <p className="font-medium">{label}</p>
-                            <p className="text-primary">{payload[0].value}</p>
-                          </motion.div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Legend />
-                  <Bar 
-                    dataKey="value" 
-                    fill="var(--primary)"
-                    animationDuration={1000}
-                    animationBegin={0}
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                        style={{ cursor: 'pointer' }}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              )}
-              {chartType === 'pie' && (
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={150}
-                    label
-                    animationDuration={1000}
-                    animationBegin={0}
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={COLORS[index % COLORS.length]}
-                        style={{ cursor: 'pointer' }}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    content={({ active, payload, label }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <motion.div
-                            variants={tooltipVariants}
-                            initial="initial"
-                            animate="animate"
-                            exit="exit"
-                            className="bg-background/80 backdrop-blur-sm p-2 rounded-lg border border-border shadow-lg"
-                          >
-                            <p className="font-medium">{label}</p>
-                            <p className="text-primary">{payload[0].value}</p>
-                          </motion.div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Legend />
-                </PieChart>
-              )}
-            </>
-          </ResponsiveContainer>
-        </motion.div>
-      </AnimatePresence>
+                      animationDuration={1000}
+                      animationBegin={0}
+                    >
+                      {transformedData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <motion.div
+                              variants={tooltipVariants}
+                              initial="initial"
+                              animate="animate"
+                              exit="exit"
+                              className="bg-background/80 backdrop-blur-sm p-2 rounded-lg border border-border shadow-lg"
+                            >
+                              <p className="font-medium">{label}</p>
+                              <p className="text-primary">{payload[0].value}</p>
+                            </motion.div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                  </PieChart>
+                )}
+              </>
+            </ResponsiveContainer>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Enhanced Legend */}
+        <ChartLegend
+          data={transformedData.map((item, index) => ({
+            name: item.name,
+            value: item.value,
+            color: COLORS[index % COLORS.length]
+          }))}
+          className="lg:sticky lg:top-4"
+        />
+      </div>
     );
   };
 
@@ -490,7 +473,7 @@ export default function ChartEditor() {
       </Card>
 
       {/* Data Summary */}
-      {chartData.length > 0 && (
+      {transformedData.length > 0 && (
         <Card className="p-6 backdrop-blur-sm bg-background/50">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-1">
