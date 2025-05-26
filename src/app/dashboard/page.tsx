@@ -1,98 +1,94 @@
 'use client';
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useDataStore } from '@/store/dataStore';
-import { ChartCard } from '@/components/ChartCard';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
-import { toast } from 'react-hot-toast';
-
-interface Visualization {
-  id: string;
-  title: string;
-  data: any;
-  type: 'line' | 'bar' | 'pie';
-  xAxis: string;
-  yAxis: string;
-}
+import { useStore } from '@/store/useStore';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 
 export default function DashboardPage() {
-  const fileData = useDataStore((state) => state.fileData);
-  const [visualizations, setVisualizations] = useState<Visualization[]>([]);
-
-  const handleAddVisualization = () => {
-    if (!fileData || fileData.type !== 'file') {
-      toast.error('Please upload data first');
-      return;
-    }
-
-    const newViz: Visualization = {
-      id: Date.now().toString(),
-      title: `Visualization ${visualizations.length + 1}`,
-      data: fileData.data,
-      type: 'line',
-      xAxis: fileData.data.headers[0] || '',
-      yAxis: fileData.data.headers[1] || '',
-    };
-
-    setVisualizations([...visualizations, newViz]);
-    toast.success('New visualization added');
-  };
-
-  const handleDeleteVisualization = (id: string) => {
-    setVisualizations(visualizations.filter(viz => viz.id !== id));
-    toast.success('Visualization removed');
-  };
-
-  const handleRefreshVisualization = (id: string) => {
-    setVisualizations(visualizations.map(viz => 
-      viz.id === id ? { ...viz, data: fileData?.data } : viz
-    ));
-    toast.success('Visualization refreshed');
-  };
+  const { fileHistory } = useStore();
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-          Ваши визуализации
-        </h1>
-        <Button
-          onClick={handleAddVisualization}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Добавить визуализацию
-        </Button>
-      </div>
+    <div className="container mx-auto p-8">
+      <h1 className="mb-8 text-4xl font-bold tracking-tight">Dashboard</h1>
+      
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Files</CardTitle>
+            <CardDescription>Your last uploaded files</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {fileHistory.length === 0 ? (
+              <p className="text-muted-foreground">No files uploaded yet</p>
+            ) : (
+              <ul className="space-y-2">
+                {fileHistory.map((file) => (
+                  <li
+                    key={file.timestamp}
+                    className="flex items-center justify-between rounded-lg border p-3"
+                  >
+                    <span className="font-medium">{file.name}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {new Date(file.timestamp).toLocaleDateString()}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
 
-      {visualizations.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center py-12 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700"
-        >
-          <p className="text-gray-600 dark:text-gray-300 text-lg">
-            Нет визуализаций. Добавьте данные для анализа.
-          </p>
-        </motion.div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <AnimatePresence>
-            {visualizations.map((viz) => (
-              <ChartCard
-                key={viz.id}
-                id={viz.id}
-                title={viz.title}
-                data={viz.data}
-                onDelete={handleDeleteVisualization}
-                onRefresh={handleRefreshVisualization}
-              />
-            ))}
-          </AnimatePresence>
-        </div>
-      )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Common tasks and shortcuts</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              <button className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                Upload New File
+              </button>
+              <button className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
+                View Archive
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Statistics</CardTitle>
+            <CardDescription>Overview of your data</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <dl className="grid grid-cols-2 gap-4">
+              <div className="rounded-lg border p-3">
+                <dt className="text-sm font-medium text-muted-foreground">
+                  Total Files
+                </dt>
+                <dd className="mt-1 text-2xl font-semibold">
+                  {fileHistory.length}
+                </dd>
+              </div>
+              <div className="rounded-lg border p-3">
+                <dt className="text-sm font-medium text-muted-foreground">
+                  Last Upload
+                </dt>
+                <dd className="mt-1 text-2xl font-semibold">
+                  {fileHistory[0]
+                    ? new Date(fileHistory[0].timestamp).toLocaleDateString()
+                    : 'Never'}
+                </dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 } 

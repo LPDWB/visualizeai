@@ -1,15 +1,29 @@
 'use client';
 
 import { useState } from 'react';
-import { useDataStore } from '@/store/dataStore';
+import { useStore } from '@/store/useStore';
+import { DataRow, FileData } from '@/types';
 import {
-  LineChart,
-  Line,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   BarChart,
   Bar,
+  LineChart,
+  Line,
   PieChart,
   Pie,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -18,73 +32,45 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
-
-type ChartType = 'line' | 'bar' | 'pie';
-
-interface ChartDataPoint {
-  name: string;
-  value: number;
-}
-
 export default function VisualizePage() {
-  const fileData = useDataStore((state) => state.fileData);
-  const [chartType, setChartType] = useState<ChartType>('line');
+  const { currentFile } = useStore();
+  const [chartType, setChartType] = useState<'bar' | 'line' | 'pie'>('bar');
   const [xAxis, setXAxis] = useState<string>('');
   const [yAxis, setYAxis] = useState<string>('');
 
-  if (!fileData || fileData.type !== 'file') {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4">Visualize</h1>
-        <div className="bg-yellow-50 dark:bg-yellow-900/30 p-4 rounded-lg">
-          <p className="text-yellow-800 dark:text-yellow-200">
-            No data available. Please upload a file on the{' '}
-            <a href="/upload" className="underline hover:text-yellow-600 dark:hover:text-yellow-300">
-              upload page
-            </a>
-            .
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const chartData = fileData.data.rows.map((row: Record<string, any>) => {
-    const xIndex = fileData.data.headers.indexOf(xAxis);
-    const yIndex = fileData.data.headers.indexOf(yAxis);
-    return {
-      name: row[xIndex]?.toString() || '',
-      value: Number(row[yIndex]) || 0,
-    };
-  });
-
   const renderChart = () => {
+    if (!currentFile || !xAxis || !yAxis) return null;
+
+    const chartData = currentFile.data.map((row: DataRow) => ({
+      [xAxis]: row[xAxis],
+      [yAxis]: Number(row[yAxis]),
+    }));
+
     switch (chartType) {
-      case 'line':
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="value" stroke="#8884d8" />
-            </LineChart>
-          </ResponsiveContainer>
-        );
       case 'bar':
         return (
           <ResponsiveContainer width="100%" height={400}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
+              <XAxis dataKey={xAxis} />
               <YAxis />
               <Tooltip />
               <Legend />
-              <Bar dataKey="value" fill="#8884d8" />
+              <Bar dataKey={yAxis} fill="#8884d8" />
             </BarChart>
+          </ResponsiveContainer>
+        );
+      case 'line':
+        return (
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey={xAxis} />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey={yAxis} stroke="#8884d8" />
+            </LineChart>
           </ResponsiveContainer>
         );
       case 'pie':
@@ -93,17 +79,14 @@ export default function VisualizePage() {
             <PieChart>
               <Pie
                 data={chartData}
-                dataKey="value"
-                nameKey="name"
+                dataKey={yAxis}
+                nameKey={xAxis}
                 cx="50%"
                 cy="50%"
                 outerRadius={150}
+                fill="#8884d8"
                 label
-              >
-                {chartData.map((_: ChartDataPoint, index: number) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
+              />
               <Tooltip />
               <Legend />
             </PieChart>
@@ -112,78 +95,90 @@ export default function VisualizePage() {
     }
   };
 
+  if (!currentFile) {
+    return (
+      <div className="container mx-auto p-8">
+        <h1 className="mb-8 text-4xl font-bold tracking-tight">Visualize</h1>
+        <Card>
+          <CardHeader>
+            <CardTitle>No Data Selected</CardTitle>
+            <CardDescription>
+              Please upload a file first to start visualizing your data
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Visualize</h1>
+    <div className="container mx-auto p-8">
+      <h1 className="mb-8 text-4xl font-bold tracking-tight">Visualize</h1>
       
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label htmlFor="chart-type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Chart Type
-            </label>
-            <select
-              id="chart-type"
-              value={chartType}
-              onChange={(e) => setChartType(e.target.value as ChartType)}
-              className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            >
-              <option value="line">Line Chart</option>
-              <option value="bar">Bar Chart</option>
-              <option value="pie">Pie Chart</option>
-            </select>
-          </div>
+      <div className="grid gap-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Chart Configuration</CardTitle>
+            <CardDescription>
+              Configure your visualization settings
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              <Select
+                value={chartType}
+                onValueChange={(value: 'bar' | 'line' | 'pie') =>
+                  setChartType(value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select chart type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bar">Bar Chart</SelectItem>
+                  <SelectItem value="line">Line Chart</SelectItem>
+                  <SelectItem value="pie">Pie Chart</SelectItem>
+                </SelectContent>
+              </Select>
 
-          <div>
-            <label htmlFor="x-axis" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              X-Axis
-            </label>
-            <select
-              id="x-axis"
-              value={xAxis}
-              onChange={(e) => setXAxis(e.target.value)}
-              className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            >
-              <option value="">Select X-Axis</option>
-              {fileData.data.headers.map((header: string) => (
-                <option key={header} value={header}>
-                  {header}
-                </option>
-              ))}
-            </select>
-          </div>
+              <Select value={xAxis} onValueChange={setXAxis}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select X axis" />
+                </SelectTrigger>
+                <SelectContent>
+                  {currentFile.columns.map((column: string) => (
+                    <SelectItem key={column} value={column}>
+                      {column}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-          <div>
-            <label htmlFor="y-axis" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Y-Axis
-            </label>
-            <select
-              id="y-axis"
-              value={yAxis}
-              onChange={(e) => setYAxis(e.target.value)}
-              className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            >
-              <option value="">Select Y-Axis</option>
-              {fileData.data.headers.map((header: string) => (
-                <option key={header} value={header}>
-                  {header}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+              <Select value={yAxis} onValueChange={setYAxis}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Y axis" />
+                </SelectTrigger>
+                <SelectContent>
+                  {currentFile.columns.map((column: string) => (
+                    <SelectItem key={column} value={column}>
+                      {column}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
-        {xAxis && yAxis ? (
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-            {renderChart()}
-          </div>
-        ) : (
-          <div className="bg-yellow-50 dark:bg-yellow-900/30 p-4 rounded-lg">
-            <p className="text-yellow-800 dark:text-yellow-200">
-              Please select both X and Y axes to display the chart.
-            </p>
-          </div>
-        )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Preview</CardTitle>
+            <CardDescription>
+              {currentFile.name} - {currentFile.data.length} rows
+            </CardDescription>
+          </CardHeader>
+          <CardContent>{renderChart()}</CardContent>
+        </Card>
       </div>
     </div>
   );
