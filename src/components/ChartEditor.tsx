@@ -40,8 +40,23 @@ interface ParsedDataRow {
 // Animation variants
 const chartVariants = {
   initial: { opacity: 0, scale: 0.95 },
-  animate: { opacity: 1, scale: 1 },
-  exit: { opacity: 0, scale: 0.95 },
+  animate: { 
+    opacity: 1, 
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 30,
+      duration: 0.5
+    }
+  },
+  exit: { 
+    opacity: 0, 
+    scale: 0.95,
+    transition: {
+      duration: 0.2
+    }
+  }
 };
 
 const barVariants = {
@@ -79,6 +94,25 @@ const pieVariants = {
       type: "spring",
       stiffness: 200,
       damping: 20
+    }
+  }
+};
+
+const tooltipVariants = {
+  initial: { opacity: 0, y: 10 },
+  animate: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.2,
+      ease: "easeOut"
+    }
+  },
+  exit: { 
+    opacity: 0, 
+    y: 10,
+    transition: {
+      duration: 0.15
     }
   }
 };
@@ -159,11 +193,22 @@ export default function ChartEditor() {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'var(--background)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--radius)',
-                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <motion.div
+                            variants={tooltipVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
+                            className="bg-background/80 backdrop-blur-sm p-2 rounded-lg border border-border shadow-lg"
+                          >
+                            <p className="font-medium">{label}</p>
+                            <p className="text-primary">{payload[0].value}</p>
+                          </motion.div>
+                        );
+                      }
+                      return null;
                     }}
                   />
                   <Legend />
@@ -176,6 +221,7 @@ export default function ChartEditor() {
                     activeDot={{ r: 6, fill: "var(--primary)" }}
                     animationDuration={1000}
                     animationBegin={0}
+                    style={{ cursor: 'pointer' }}
                   />
                 </LineChart>
               )}
@@ -185,11 +231,22 @@ export default function ChartEditor() {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'var(--background)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--radius)',
-                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <motion.div
+                            variants={tooltipVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
+                            className="bg-background/80 backdrop-blur-sm p-2 rounded-lg border border-border shadow-lg"
+                          >
+                            <p className="font-medium">{label}</p>
+                            <p className="text-primary">{payload[0].value}</p>
+                          </motion.div>
+                        );
+                      }
+                      return null;
                     }}
                   />
                   <Legend />
@@ -231,11 +288,22 @@ export default function ChartEditor() {
                     ))}
                   </Pie>
                   <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'var(--background)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--radius)',
-                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <motion.div
+                            variants={tooltipVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
+                            className="bg-background/80 backdrop-blur-sm p-2 rounded-lg border border-border shadow-lg"
+                          >
+                            <p className="font-medium">{label}</p>
+                            <p className="text-primary">{payload[0].value}</p>
+                          </motion.div>
+                        );
+                      }
+                      return null;
                     }}
                   />
                   <Legend />
