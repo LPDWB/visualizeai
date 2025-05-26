@@ -61,6 +61,18 @@ const tagVariants = {
   },
 };
 
+const scrollIndicatorVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      delay: 1,
+    },
+  },
+};
+
 export default function HeroSection({ onStartClick }: HeroSectionProps) {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const { scrollY } = useScroll();
@@ -88,6 +100,16 @@ export default function HeroSection({ onStartClick }: HeroSectionProps) {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-background to-background/80">
+      {/* Enhanced spotlight effect */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `radial-gradient(1200px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(var(--primary-rgb), 0.15), transparent 60%)`,
+            maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1), rgba(0,0,0,0.8))',
+          }}
+        />
+      </div>
       <GlowingBackground />
 
       <div className="container max-w-7xl mx-auto px-4 relative z-10">
@@ -167,10 +189,13 @@ export default function HeroSection({ onStartClick }: HeroSectionProps) {
           </motion.div>
         </motion.div>
 
-        {/* Scroll indicator */}
+        {/* Enhanced scroll indicator */}
         <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={scrollIndicatorVariants}
           style={{ opacity, y }}
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-2"
+          className="fixed bottom-6 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-2"
         >
           <motion.div
             animate={{
