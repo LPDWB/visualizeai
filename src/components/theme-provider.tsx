@@ -8,6 +8,7 @@ interface CustomThemeProviderProps {
   attribute?: string;
   defaultTheme?: string;
   enableSystem?: boolean;
+  disableTransitionOnChange?: boolean;
 }
 
 export function ThemeProvider({ children, ...props }: CustomThemeProviderProps) {
