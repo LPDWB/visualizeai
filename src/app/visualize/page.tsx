@@ -62,9 +62,9 @@ export default function VisualizePage() {
 
   if (!currentFile) {
     return (
-      <div className="container mx-auto p-8">
-        <h1 className="mb-8 text-4xl font-bold tracking-tight">Visualize</h1>
-        <Card>
+      <div className="container mx-auto p-4 md:p-8 flex flex-col items-center justify-center min-h-[70vh]">
+        <h1 className="mb-8 text-4xl font-bold tracking-tight text-center">Visualize</h1>
+        <Card className="w-full max-w-xl shadow-xl rounded-2xl backdrop-blur-md bg-background/60 border border-white/10">
           <CardHeader>
             <CardTitle>No Data Selected</CardTitle>
             <CardDescription>
@@ -77,11 +77,10 @@ export default function VisualizePage() {
   }
 
   return (
-    <div className="container mx-auto p-8">
-      <h1 className="mb-8 text-4xl font-bold tracking-tight">Visualize</h1>
-      
-      <div className="grid gap-8">
-        <Card>
+    <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8">
+      <h1 className="mb-8 text-4xl font-bold tracking-tight text-center">Visualize</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <Card className="shadow-xl rounded-2xl backdrop-blur-md bg-background/60 border border-white/10">
           <CardHeader>
             <CardTitle>Chart Configuration</CardTitle>
             <CardDescription>
@@ -89,7 +88,7 @@ export default function VisualizePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-1">
               <Select
                 value={chartType}
                 onValueChange={(value: 'bar' | 'line' | 'pie') =>
@@ -135,7 +134,7 @@ export default function VisualizePage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-xl rounded-2xl border border-white/10">
           <CardHeader>
             <CardTitle>Preview</CardTitle>
             <CardDescription>
@@ -147,6 +146,7 @@ export default function VisualizePage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
+              className="min-h-[400px] flex items-center justify-center"
             >
               {renderChart()}
             </motion.div>
