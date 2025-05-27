@@ -9,6 +9,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard' },
   { name: 'Visualize', href: '/visualize' },
+  { name: 'AI', href: '/ai' },
   { name: 'Archive', href: '/archive' },
 ];
 
