@@ -8,6 +8,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Format data as markdown table
+    const headers = Object.keys(previewData[0]).join(' | ');
+    const formattedTable = previewData
+      .map((row: Record<string, any>) => Object.values(row).join(' | '))
+      .join('\n');
+    const tableText = `${headers}\n${formattedTable}`;
+
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -23,7 +30,7 @@ export async function POST(req: NextRequest) {
           },
           {
             role: 'user',
-            content: `User prompt: ${prompt}\n\nPreview of data:\n${previewData}`
+            content: `User prompt: ${prompt}\n\nHere is a preview of the table data:\n${tableText}`
           }
         ],
         temperature: 0.7,
