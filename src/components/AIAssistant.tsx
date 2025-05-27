@@ -24,6 +24,12 @@ interface Message {
   chartConfig?: ChartConfig;
 }
 
+interface AIResponse {
+  chartConfig?: ChartConfig;
+  insight: string;
+  suggestions?: string[];
+}
+
 export function AIAssistant() {
   const { currentFile, addToHistory, setCurrentFile, fileHistory, createChartFromAIConfig } = useStore();
   const [input, setInput] = useState('');
@@ -102,90 +108,42 @@ export function AIAssistant() {
       }
       
       const data = await res.json();
-      const aiResponse = data.output || 'No AI response received';
+      const aiResponse: AIResponse = data.output;
       
-      // Extract chart configuration from response
-      let chartConfig: ChartConfig | undefined;
-      try {
-        const configMatch = aiResponse.match(/```json\n([\s\S]*?)\n```/);
-        if (configMatch) {
-          const parsedConfig = JSON.parse(configMatch[1]);
-          const template = chartTemplates.find((t: ChartTemplate) => t.type === parsedConfig.type);
-          if (!template) {
-            throw new Error('Invalid chart type');
+      // Create chart if config is available
+      let chartId: string | null = null;
+      if (aiResponse.chartConfig) {
+        const config = {
+          ...aiResponse.chartConfig,
+          data: {
+            columns: currentFile.columns.map(name => ({
+              name,
+              type: Type.String,
+              values: currentFile.data.map(row => row[name])
+            })),
+            rows: currentFile.data
           }
-
-          // Convert string encoding to ChartChannel objects
-          const encoding: ChartEncoding = {};
-          if (parsedConfig.encoding) {
-            Object.entries(parsedConfig.encoding).forEach(([key, value]) => {
-              if (key === 'tooltip' && Array.isArray(value)) {
-                encoding.tooltip = value.map(field => ({
-                  field,
-                  type: Type.String
-                }));
-              } else if (typeof value === 'string') {
-                const column = currentFile.columns.find(col => col === value);
-                if (column) {
-                  const channel = {
-                    field: value,
-                    type: Type.String
-                  };
-                  encoding[key as keyof Omit<ChartEncoding, 'tooltip'>] = channel;
-                }
-              }
-            });
-          }
-
-          chartConfig = {
-            type: parsedConfig.type,
-            template,
-            encoding,
-            data: {
-              columns: currentFile.columns.map(name => ({
-                name,
-                type: Type.String,
-                values: currentFile.data.map(row => row[name])
-              })),
-              rows: currentFile.data
-            }
-          };
-        }
-      } catch (e) {
-        console.error('Error parsing chart config:', e);
+        };
+        chartId = createChartFromAIConfig(config, config.data);
       }
-
-      // Extract suggestions from response
-      const extractedSuggestions = aiResponse
-        .split('\n')
-        .filter((line: string) => 
-          line.toLowerCase().includes('chart') || 
-          line.toLowerCase().includes('visualization') ||
-          line.toLowerCase().includes('график') ||
-          line.toLowerCase().includes('диаграмма')
-        )
-        .map((line: string) => line.trim());
 
       // Add AI message
       const assistantMessage: Message = {
         role: 'assistant',
-        content: aiResponse,
+        content: aiResponse.insight,
         timestamp: Date.now(),
-        suggestions: extractedSuggestions.length > 0 ? extractedSuggestions : undefined,
-        chartConfig
+        suggestions: aiResponse.suggestions,
+        chartConfig: aiResponse.chartConfig
       };
       setMessages(prev => [...prev, assistantMessage]);
       
-      // Create chart if config is available
-      if (chartConfig) {
-        const chartId = createChartFromAIConfig(chartConfig, chartConfig.data);
-        if (chartId) {
-          setActiveChartId(chartId);
-        }
+      // Activate chart if created
+      if (chartId) {
+        setActiveChartId(chartId);
       }
       
       // Show visualization panel if suggestions exist
-      if (extractedSuggestions.length > 0) {
+      if (aiResponse.suggestions?.length) {
         setShowVisualizations(true);
       }
     } catch (e) {
@@ -203,7 +161,19 @@ export function AIAssistant() {
   const handleSuggestionClick = (suggestion: string, chartConfig: ChartConfig) => {
     if (!currentFile) return;
     
-    const chartId = createChartFromAIConfig(chartConfig, chartConfig.data);
+    const config = {
+      ...chartConfig,
+      data: {
+        columns: currentFile.columns.map(name => ({
+          name,
+          type: Type.String,
+          values: currentFile.data.map(row => row[name])
+        })),
+        rows: currentFile.data
+      }
+    };
+    
+    const chartId = createChartFromAIConfig(config, config.data);
     if (chartId) {
       setActiveChartId(chartId);
       setShowVisualizations(false);

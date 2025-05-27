@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ChartConfig, ChartType } from '@/lib/charts/types';
+
+interface AIResponse {
+  chartConfig?: ChartConfig;
+  insight: string;
+  suggestions?: string[];
+}
 
 export async function POST(req: NextRequest) {
-  const { prompt, previewData } = await req.json();
+  const { prompt, previewData, model = 'anthropic/claude-3-haiku' } = await req.json();
 
   if (!prompt || !previewData) {
     return NextResponse.json({ error: 'Missing prompt or data' }, { status: 400 });
@@ -22,11 +29,28 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3-haiku',
+        model,
         messages: [
           {
             role: 'system',
-            content: 'You are an expert data analyst. Help the user analyze tabular data and suggest meaningful visualizations or insights.'
+            content: `You are an expert data analyst and visualization specialist. Your task is to:
+1. Analyze the data and suggest appropriate visualizations
+2. Return a structured JSON response with:
+   - chartConfig: Configuration for the recommended chart
+   - insight: A clear explanation of the data insight
+   - suggestions: List of alternative visualization suggestions
+
+The chartConfig should follow this format:
+{
+  "type": "bar|line|scatter|pie|area",
+  "encoding": {
+    "x": { "field": "column_name", "type": "string|number|date" },
+    "y": { "field": "column_name", "type": "number" },
+    "color": { "field": "column_name", "type": "string" }
+  }
+}
+
+Always return valid JSON, even if you're not sure about the best visualization.`
           },
           {
             role: 'user',
@@ -34,7 +58,8 @@ export async function POST(req: NextRequest) {
           }
         ],
         temperature: 0.7,
-        max_tokens: 1000
+        max_tokens: 1000,
+        response_format: { type: "json_object" }
       })
     });
 
@@ -45,9 +70,20 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json();
-    const aiResponse = data.choices?.[0]?.message?.content ?? 'No response from AI';
+    const aiResponse = data.choices?.[0]?.message?.content ?? '{}';
 
-    return NextResponse.json({ output: aiResponse });
+    try {
+      const parsedResponse: AIResponse = JSON.parse(aiResponse);
+      return NextResponse.json({ output: parsedResponse });
+    } catch (e) {
+      console.error('Failed to parse AI response:', e);
+      return NextResponse.json({ 
+        output: {
+          insight: aiResponse,
+          suggestions: []
+        }
+      });
+    }
   } catch (err) {
     console.error('Request failed:', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

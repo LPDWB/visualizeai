@@ -41,26 +41,89 @@ export function ChartSuggestionPanel({
     const template = chartTemplates.find((t: ChartTemplate) => t.type === chartType);
     if (!template) return null;
 
-    // Определяем оси на основе данных
-    const xAxis = columns[0];
-    const yAxis = columns[1];
+    // Определяем оси на основе данных и типа графика
+    let xAxis = columns[0];
+    let yAxis = columns[1];
+    let colorAxis: string | undefined;
 
-    return {
+    // Для временных рядов используем дату/время как ось X
+    if (chartType === 'line' || chartType === 'area') {
+      const dateColumn = columns.find(col => 
+        col.toLowerCase().includes('date') || 
+        col.toLowerCase().includes('time') ||
+        col.toLowerCase().includes('год') ||
+        col.toLowerCase().includes('месяц')
+      );
+      if (dateColumn) {
+        xAxis = dateColumn;
+        yAxis = columns.find(col => col !== dateColumn) || columns[1];
+      }
+    }
+
+    // Для категориальных данных используем строковые колонки
+    if (chartType === 'bar' || chartType === 'pie') {
+      const stringColumn = columns.find(col => 
+        typeof data[0][col] === 'string' ||
+        col.toLowerCase().includes('name') ||
+        col.toLowerCase().includes('category') ||
+        col.toLowerCase().includes('type')
+      );
+      if (stringColumn) {
+        xAxis = stringColumn;
+        yAxis = columns.find(col => col !== stringColumn) || columns[1];
+      }
+    }
+
+    // Для scatter plot используем числовые колонки
+    if (chartType === 'scatter') {
+      const numericColumns = columns.filter(col => 
+        typeof data[0][col] === 'number' ||
+        !isNaN(Number(data[0][col]))
+      );
+      if (numericColumns.length >= 2) {
+        xAxis = numericColumns[0];
+        yAxis = numericColumns[1];
+        if (numericColumns.length >= 3) {
+          colorAxis = numericColumns[2];
+        }
+      }
+    }
+
+    // Определяем тип данных для осей
+    const getColumnType = (col: string): Type => {
+      const value = data[0][col];
+      if (typeof value === 'number' || !isNaN(Number(value))) return Type.Number;
+      if (typeof value === 'boolean') return Type.Boolean;
+      if (value instanceof Date || !isNaN(Date.parse(value))) return Type.Date;
+      return Type.String;
+    };
+
+    const config: ChartConfig = {
       type: chartType,
       template,
       encoding: {
-        x: { field: xAxis, type: Type.String },
-        y: { field: yAxis, type: Type.Number }
+        x: { field: xAxis, type: getColumnType(xAxis) },
+        y: { field: yAxis, type: getColumnType(yAxis) }
       },
       data: {
         columns: columns.map(name => ({
           name,
-          type: Type.String,
+          type: getColumnType(name),
           values: data.map(row => row[name])
         })),
         rows: data
       }
     };
+
+    // Добавляем color если есть подходящая колонка
+    if (colorAxis) {
+      config.encoding.color = { 
+        field: colorAxis, 
+        type: getColumnType(colorAxis) 
+      };
+    }
+
+    return config;
   };
 
   return (
