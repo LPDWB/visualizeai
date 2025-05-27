@@ -1,19 +1,20 @@
 "use client";
 
 import { useState, ChangeEvent, useEffect, useRef } from 'react';
-import { FileUploader } from '@/components/FileUploader';
-import { useStore } from '@/store/useStore';
-import { Button } from '@/components/ui/button';
-import { FileData } from '@/store/types';
-import { MessageBubble } from '@/components/MessageBubble';
-import { ModelDropdown, MODELS } from '@/components/ModelDropdown';
-import { ChartSuggestionPanel } from '@/components/ChartSuggestionPanel';
+import { FileUploader } from './FileUploader';
+import { useStore } from '../store/useStore';
+import { Button } from './ui/button';
+import { FileData } from '../store/types';
+import { MessageBubble } from './MessageBubble';
+import { ModelDropdown, MODELS } from './ModelDropdown';
+import { ChartSuggestionPanel } from './ChartSuggestionPanel';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
-import { AIChartDisplay } from '@/components/charts/AIChartDisplay';
-import { ChartConfig, ChartTemplate, ChartEncoding } from '@/lib/charts/types';
-import { createTableFromText } from '@/lib/data/utils';
-import { chartTemplates } from '@/lib/charts/templates';
+import { cn } from '../lib/utils';
+import { AIChartDisplay } from './charts/AIChartDisplay';
+import { ChartConfig, ChartTemplate, ChartEncoding } from '../lib/charts/types';
+import { createTableFromText } from '../lib/data/utils';
+import { chartTemplates } from '../lib/charts/templates';
+import { Type } from '../lib/data/types';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -121,14 +122,14 @@ export function AIAssistant() {
               if (key === 'tooltip' && Array.isArray(value)) {
                 encoding.tooltip = value.map(field => ({
                   field,
-                  type: 'string'
+                  type: Type.String
                 }));
               } else if (typeof value === 'string') {
                 const column = currentFile.columns.find(col => col === value);
                 if (column) {
                   const channel = {
                     field: value,
-                    type: 'string' as const
+                    type: Type.String
                   };
                   encoding[key as keyof Omit<ChartEncoding, 'tooltip'>] = channel;
                 }
@@ -143,7 +144,7 @@ export function AIAssistant() {
             data: {
               columns: currentFile.columns.map(name => ({
                 name,
-                type: 'string',
+                type: Type.String,
                 values: currentFile.data.map(row => row[name])
               })),
               rows: currentFile.data
