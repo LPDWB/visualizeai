@@ -1,38 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
-  const { prompt, data } = await req.json();
-  const apiKey = process.env.HUGGINGFACE_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ result: 'Hugging Face API key not set.' }, { status: 500 });
+  const { prompt, previewData } = await req.json();
+
+  if (!prompt || !previewData) {
+    return NextResponse.json({ error: 'Missing prompt or data' }, { status: 400 });
   }
 
-  // Prepare the input for the model
-  const input = `User question:\n${prompt}\n\nData:\n${JSON.stringify(data)}`;
-
   try {
-    const hfRes = await fetch('https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1', {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        inputs: input,
-        parameters: {
-          max_new_tokens: 500,
-          temperature: 0.7,
-        },
-      }),
+        model: 'anthropic/claude-3-haiku',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert data analyst. Help the user analyze tabular data and suggest meaningful visualizations or insights.'
+          },
+          {
+            role: 'user',
+            content: `User prompt: ${prompt}\n\nPreview of data:\n${previewData}`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      })
     });
-    if (!hfRes.ok) {
-      return NextResponse.json({ result: 'AI model error.' }, { status: 500 });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('OpenRouter Error:', error);
+      return NextResponse.json({ error: 'AI model error' }, { status: 500 });
     }
-    const data = await hfRes.json();
-    // Hugging Face returns an array with 'generated_text' or similar
-    const result = Array.isArray(data) && data[0]?.generated_text ? data[0].generated_text : (data.generated_text || data.error || 'No response.');
-    return NextResponse.json({ result });
-  } catch (e) {
-    return NextResponse.json({ result: 'Error contacting Hugging Face.' }, { status: 500 });
+
+    const data = await response.json();
+    const aiResponse = data.choices?.[0]?.message?.content ?? 'No response from AI';
+
+    return NextResponse.json({ output: aiResponse });
+  } catch (err) {
+    console.error('Request failed:', err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 } 
