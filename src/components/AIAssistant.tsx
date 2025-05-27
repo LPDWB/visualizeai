@@ -5,7 +5,9 @@ import { FileUploader } from '@/components/FileUploader';
 import { useStore } from '@/store/useStore';
 import { Button } from '@/components/ui/button';
 import { FileData } from '@/types';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MessageBubble } from '@/components/MessageBubble';
+import { ModelDropdown, MODELS } from '@/components/ModelDropdown';
+import { ChartSuggestionPanel } from '@/components/ChartSuggestionPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Message {
@@ -14,12 +16,6 @@ interface Message {
   timestamp: number;
   suggestions?: string[];
 }
-
-const MODELS = [
-  { id: 'claude-3-haiku', name: 'Claude 3 Haiku' },
-  { id: 'mixtral', name: 'Mixtral' },
-  { id: 'gpt-4', name: 'GPT-4' },
-];
 
 export function AIAssistant() {
   const { currentFile, addToHistory, setCurrentFile, fileHistory } = useStore();
@@ -40,14 +36,6 @@ export function AIAssistant() {
   useEffect(() => {
     localStorage.setItem('preferredModel', selectedModel);
   }, [selectedModel]);
-
-  // Load model preference
-  useEffect(() => {
-    const savedModel = localStorage.getItem('preferredModel');
-    if (savedModel && MODELS.some(m => m.id === savedModel)) {
-      setSelectedModel(savedModel);
-    }
-  }, []);
 
   const handleFileUpload = async (file: File) => {
     if (!file) return;
@@ -136,19 +124,7 @@ export function AIAssistant() {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         <div className="flex items-center justify-between mb-4">
-          <Select value={selectedModel} onValueChange={setSelectedModel}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select model" />
-            </SelectTrigger>
-            <SelectContent>
-              {MODELS.map(model => (
-                <SelectItem key={model.id} value={model.id}>
-                  {model.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
+          <ModelDropdown value={selectedModel} onChange={setSelectedModel} />
           <FileUploader onFileUpload={handleFileUpload} />
         </div>
 
@@ -158,31 +134,13 @@ export function AIAssistant() {
           className="flex-1 overflow-y-auto space-y-4 mb-4 pr-4"
         >
           <AnimatePresence>
-            {messages.map((message, index) => (
-              <motion.div
+            {messages.map((message) => (
+              <MessageBubble
                 key={message.timestamp}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                    message.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
-                  }`}
-                >
-                  <div className="prose prose-invert max-w-none">
-                    {message.content.split(/\n\n|\n- /).map((block, i) => (
-                      <div key={i} className="mb-2 last:mb-0">
-                        {block.trim()}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
+                content={message.content}
+                role={message.role}
+                timestamp={message.timestamp}
+              />
             ))}
           </AnimatePresence>
           <div ref={messagesEndRef} />
@@ -191,7 +149,7 @@ export function AIAssistant() {
         {/* Input Area */}
         <div className="relative">
           <textarea
-            className="w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary min-h-[60px] resize-none"
+            className="w-full rounded-lg border border-input bg-background/50 backdrop-blur px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary min-h-[60px] resize-none"
             placeholder={currentFile ? "Ask about your data..." : "Upload a file to get started..."}
             value={input}
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
@@ -219,33 +177,13 @@ export function AIAssistant() {
       </div>
 
       {/* Visualization Panel */}
-      <AnimatePresence>
-        {showVisualizations && (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            className="w-64 bg-background/50 backdrop-blur border rounded-lg p-4 space-y-4"
-          >
-            <h3 className="text-sm font-medium">Suggested Visualizations</h3>
-            <div className="space-y-2">
-              {messages[messages.length - 1]?.suggestions?.map((suggestion, i) => (
-                <Button
-                  key={i}
-                  size="sm"
-                  variant="outline"
-                  className="w-full justify-start transition-all hover:scale-[1.02] hover:bg-primary/10"
-                  onClick={() => {
-                    console.log('Build chart:', suggestion);
-                  }}
-                >
-                  {suggestion}
-                </Button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ChartSuggestionPanel
+        suggestions={messages[messages.length - 1]?.suggestions || []}
+        onSuggestionClick={(suggestion) => {
+          console.log('Build chart:', suggestion);
+        }}
+        visible={showVisualizations}
+      />
     </div>
   );
 } 
