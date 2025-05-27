@@ -41,13 +41,19 @@ export function AIAssistant() {
       const res = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: input, data: dataSample }),
+        body: JSON.stringify({ prompt: input, previewData: dataSample }),
       });
-      const { result } = await res.json();
-      setResponse(result);
+      
+      if (!res.ok) {
+        throw new Error('AI request failed');
+      }
+      
+      const data = await res.json();
+      const aiResponse = data.output || 'No AI response received';
+      setResponse(aiResponse);
       
       // Extract suggestions from response
-      const extractedSuggestions = result
+      const extractedSuggestions = aiResponse
         .split('\n')
         .filter((line: string) => line.toLowerCase().includes('chart') || line.toLowerCase().includes('visualization'))
         .map((line: string) => line.trim());
