@@ -4,27 +4,33 @@ import { useState, ChangeEvent, useEffect, useRef } from 'react';
 import { FileUploader } from '@/components/FileUploader';
 import { useStore } from '@/store/useStore';
 import { Button } from '@/components/ui/button';
-import { FileData } from '@/types';
+import { FileData } from '@/store/types';
 import { MessageBubble } from '@/components/MessageBubble';
 import { ModelDropdown, MODELS } from '@/components/ModelDropdown';
 import { ChartSuggestionPanel } from '@/components/ChartSuggestionPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { AIChartDisplay } from '@/components/charts/AIChartDisplay';
+import { ChartConfig, ChartTemplate, ChartEncoding } from '@/lib/charts/types';
+import { createTableFromText } from '@/lib/data/utils';
+import { chartTemplates } from '@/lib/charts/templates';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
   suggestions?: string[];
+  chartConfig?: ChartConfig;
 }
 
 export function AIAssistant() {
-  const { currentFile, addToHistory, setCurrentFile, fileHistory } = useStore();
+  const { currentFile, addToHistory, setCurrentFile, fileHistory, createChartFromAIConfig } = useStore();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedModel, setSelectedModel] = useState(MODELS[0].id);
   const [showVisualizations, setShowVisualizations] = useState(false);
+  const [activeChartId, setActiveChartId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -40,13 +46,13 @@ export function AIAssistant() {
 
   const handleFileUpload = async (file: File) => {
     if (!file) return;
-    const { parseFile } = await import('@/utils/fileParser');
     try {
-      const { data, columns } = await parseFile(file);
+      const text = await file.text();
+      const table = createTableFromText(text);
       const fileData: FileData = {
         name: file.name,
-        data,
-        columns,
+        data: table.rows,
+        columns: table.columns.map(col => col.name),
         timestamp: Date.now(),
       };
       setCurrentFile(fileData);
@@ -76,6 +82,7 @@ export function AIAssistant() {
     setInput('');
     setLoading(true);
     setShowVisualizations(false);
+    setActiveChartId(null);
 
     try {
       const dataSample = currentFile.data.slice(0, 100);
@@ -96,6 +103,57 @@ export function AIAssistant() {
       const data = await res.json();
       const aiResponse = data.output || 'No AI response received';
       
+      // Extract chart configuration from response
+      let chartConfig: ChartConfig | undefined;
+      try {
+        const configMatch = aiResponse.match(/```json\n([\s\S]*?)\n```/);
+        if (configMatch) {
+          const parsedConfig = JSON.parse(configMatch[1]);
+          const template = chartTemplates.find((t: ChartTemplate) => t.type === parsedConfig.type);
+          if (!template) {
+            throw new Error('Invalid chart type');
+          }
+
+          // Convert string encoding to ChartChannel objects
+          const encoding: ChartEncoding = {};
+          if (parsedConfig.encoding) {
+            Object.entries(parsedConfig.encoding).forEach(([key, value]) => {
+              if (key === 'tooltip' && Array.isArray(value)) {
+                encoding.tooltip = value.map(field => ({
+                  field,
+                  type: 'string'
+                }));
+              } else if (typeof value === 'string') {
+                const column = currentFile.columns.find(col => col === value);
+                if (column) {
+                  const channel = {
+                    field: value,
+                    type: 'string' as const
+                  };
+                  encoding[key as keyof Omit<ChartEncoding, 'tooltip'>] = channel;
+                }
+              }
+            });
+          }
+
+          chartConfig = {
+            type: parsedConfig.type,
+            template,
+            encoding,
+            data: {
+              columns: currentFile.columns.map(name => ({
+                name,
+                type: 'string',
+                values: currentFile.data.map(row => row[name])
+              })),
+              rows: currentFile.data
+            }
+          };
+        }
+      } catch (e) {
+        console.error('Error parsing chart config:', e);
+      }
+
       // Extract suggestions from response
       const extractedSuggestions = aiResponse
         .split('\n')
@@ -113,8 +171,17 @@ export function AIAssistant() {
         content: aiResponse,
         timestamp: Date.now(),
         suggestions: extractedSuggestions.length > 0 ? extractedSuggestions : undefined,
+        chartConfig
       };
       setMessages(prev => [...prev, assistantMessage]);
+      
+      // Create chart if config is available
+      if (chartConfig) {
+        const chartId = createChartFromAIConfig(chartConfig, chartConfig.data);
+        if (chartId) {
+          setActiveChartId(chartId);
+        }
+      }
       
       // Show visualization panel if suggestions exist
       if (extractedSuggestions.length > 0) {
@@ -151,13 +218,26 @@ export function AIAssistant() {
         >
           <AnimatePresence>
             {messages.map((message, index) => (
-              <MessageBubble
-                key={message.timestamp}
-                content={message.content}
-                role={message.role}
-                timestamp={message.timestamp}
-                isLast={index === messages.length - 1}
-              />
+              <div key={message.timestamp} className="space-y-4">
+                <MessageBubble
+                  content={message.content}
+                  role={message.role}
+                  timestamp={message.timestamp}
+                  isLast={index === messages.length - 1}
+                />
+                {message.chartConfig && activeChartId && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                  >
+                    <AIChartDisplay
+                      chartId={activeChartId}
+                      onClose={() => setActiveChartId(null)}
+                    />
+                  </motion.div>
+                )}
+              </div>
             ))}
           </AnimatePresence>
           <div ref={messagesEndRef} />
