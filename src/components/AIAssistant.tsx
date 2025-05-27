@@ -9,6 +9,7 @@ import { MessageBubble } from '@/components/MessageBubble';
 import { ModelDropdown, MODELS } from '@/components/ModelDropdown';
 import { ChartSuggestionPanel } from '@/components/ChartSuggestionPanel';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -50,6 +51,13 @@ export function AIAssistant() {
       };
       setCurrentFile(fileData);
       addToHistory(fileData);
+
+      // Add welcome message
+      setMessages([{
+        role: 'assistant',
+        content: `I've loaded your ${file.name} file. What would you like to know about the data?`,
+        timestamp: Date.now(),
+      }]);
     } catch (e) {
       console.error('Error parsing file:', e);
     }
@@ -91,7 +99,12 @@ export function AIAssistant() {
       // Extract suggestions from response
       const extractedSuggestions = aiResponse
         .split('\n')
-        .filter((line: string) => line.toLowerCase().includes('chart') || line.toLowerCase().includes('visualization'))
+        .filter((line: string) => 
+          line.toLowerCase().includes('chart') || 
+          line.toLowerCase().includes('visualization') ||
+          line.toLowerCase().includes('график') ||
+          line.toLowerCase().includes('диаграмма')
+        )
         .map((line: string) => line.trim());
 
       // Add AI message
@@ -122,7 +135,12 @@ export function AIAssistant() {
   return (
     <div className="flex h-[calc(100vh-12rem)] gap-4">
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <motion.div 
+        className={cn(
+          "flex-1 flex flex-col transition-all duration-300",
+          showVisualizations && "mr-80"
+        )}
+      >
         <div className="flex items-center justify-between mb-4">
           <ModelDropdown value={selectedModel} onChange={setSelectedModel} />
           <FileUploader onFileUpload={handleFileUpload} />
@@ -134,12 +152,13 @@ export function AIAssistant() {
           className="flex-1 overflow-y-auto space-y-4 mb-4 pr-4"
         >
           <AnimatePresence>
-            {messages.map((message) => (
+            {messages.map((message, index) => (
               <MessageBubble
                 key={message.timestamp}
                 content={message.content}
                 role={message.role}
                 timestamp={message.timestamp}
+                isLast={index === messages.length - 1}
               />
             ))}
           </AnimatePresence>
@@ -174,7 +193,7 @@ export function AIAssistant() {
             ) : 'Send'}
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Visualization Panel */}
       <ChartSuggestionPanel
@@ -183,6 +202,8 @@ export function AIAssistant() {
           console.log('Build chart:', suggestion);
         }}
         visible={showVisualizations}
+        data={currentFile?.data}
+        columns={currentFile?.columns}
       />
     </div>
   );

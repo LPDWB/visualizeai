@@ -4,10 +4,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useEffect, useState } from 'react';
 
 export const MODELS = [
-  { id: 'claude-3-haiku', name: 'Claude 3 Haiku', description: 'Fast and efficient' },
-  { id: 'gpt-4', name: 'GPT-4', description: 'Most capable' },
-  { id: 'gpt-3.5-turbo', name: 'GPT-3.5', description: 'Balanced' },
-  { id: 'mixtral', name: 'Mixtral', description: 'Open source' },
+  { 
+    id: 'anthropic/claude-3-haiku', 
+    name: 'Claude 3 Haiku', 
+    description: '⚡ Fast & Smart',
+    icon: '⚡'
+  },
+  { 
+    id: 'mistralai/mixtral-8x7b-instruct', 
+    name: 'Mixtral', 
+    description: '🚀 Ultra Fast',
+    icon: '🚀'
+  }
 ];
 
 interface ModelDropdownProps {
@@ -30,15 +38,18 @@ export function ModelDropdown({ value, onChange }: ModelDropdownProps) {
 
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-[200px] bg-background/50 backdrop-blur">
+      <SelectTrigger className="w-[220px] bg-background/50 backdrop-blur border-primary/20">
         <SelectValue placeholder="Select model" />
       </SelectTrigger>
       <SelectContent>
         {MODELS.map(model => (
           <SelectItem key={model.id} value={model.id}>
-            <div className="flex flex-col">
-              <span>{model.name}</span>
-              <span className="text-xs text-muted-foreground">{model.description}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{model.icon}</span>
+              <div className="flex flex-col">
+                <span className="font-medium">{model.name}</span>
+                <span className="text-xs text-muted-foreground">{model.description}</span>
+              </div>
             </div>
           </SelectItem>
         ))}
