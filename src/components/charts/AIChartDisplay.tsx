@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { ChartRenderer } from './ChartRenderer';
-import { EncodingShelf } from '../charts/EncodingShelf';
+import { EncodingShelf } from './EncodingShelf';
 import { useStore } from '../../store/useStore';
 import { ChartConfig } from '../../lib/charts/types';
 import { motion, AnimatePresence } from 'framer-motion';

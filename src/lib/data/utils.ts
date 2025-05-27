@@ -1,4 +1,4 @@
-import { Type, TypeInferenceResult, Table, Column } from '../data/types';
+import { Type, TypeInferenceResult, Table, Column } from './types';
 
 export function inferTypeFromValueArray(values: any[]): TypeInferenceResult {
   if (values.length === 0) {

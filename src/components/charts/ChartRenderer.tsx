@@ -19,7 +19,7 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts';
-import { ChartConfig, ChartChannel } from '@/lib/charts/types';
+import { ChartConfig, ChartChannel } from '../../lib/charts/types';
 import { useMemo } from 'react';
 import { ReactElement } from 'react';
 
