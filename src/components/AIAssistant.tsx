@@ -1,5 +1,5 @@
 "use client";
-import { useState, ChangeEvent } from 'react';
+import { useState, ChangeEvent, useEffect } from 'react';
 import { FileUploader } from '@/components/FileUploader';
 import { useStore } from '@/store/useStore';
 import { Button } from '@/components/ui/button';
@@ -7,13 +7,22 @@ import { motion } from 'framer-motion';
 import { FileData, AIResponse } from '@/types';
 
 export function AIAssistant() {
+  console.log('Rendering AIAssistant');
   const { currentFile, addToHistory, setCurrentFile, fileHistory } = useStore();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    console.log('AIAssistant mounted');
+    console.log('Current file:', currentFile);
+    console.log('File history:', fileHistory);
+  }, [currentFile, fileHistory]);
 
   const handleFileUpload = async (file: File) => {
+    console.log('Handling file upload:', file.name);
     if (!file) return;
     const { parseFile } = await import('@/utils/fileParser');
     try {
@@ -26,16 +35,20 @@ export function AIAssistant() {
       };
       setCurrentFile(fileData);
       addToHistory(fileData);
+      setError(null);
     } catch (e) {
       console.error('Error parsing file:', e);
+      setError('Failed to parse file. Please try again.');
     }
   };
 
   const handleAskAI = async () => {
+    console.log('Handling AI request');
     if (!input.trim() || !currentFile) return;
     setLoading(true);
     setResponse('');
     setSuggestions([]);
+    setError(null);
     try {
       const dataSample = currentFile.data.slice(0, 100);
       const res = await fetch('/api/ai', {
@@ -46,7 +59,6 @@ export function AIAssistant() {
       const { result } = await res.json();
       setResponse(result);
       
-      // Extract suggestions from response
       const extractedSuggestions = result
         .split('\n')
         .filter((line: string) => line.toLowerCase().includes('chart') || line.toLowerCase().includes('visualization'))
@@ -54,14 +66,21 @@ export function AIAssistant() {
       setSuggestions(extractedSuggestions);
     } catch (e) {
       console.error('Error contacting AI:', e);
-      setResponse('Error contacting AI. Please try again.');
+      setError('Error contacting AI. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-4xl glass-card rounded-2xl shadow-xl border border-white/10 backdrop-blur-md bg-background/60 flex flex-col gap-6 p-6">
+    <div className="w-full min-h-[500px] bg-yellow-500/5 border-2 border-yellow-500/20 rounded-2xl shadow-xl backdrop-blur-md flex flex-col gap-6 p-6">
+      {/* Debug info */}
+      <div className="text-xs text-yellow-500/50 mb-2">
+        Debug: Component is rendering
+        {currentFile && ` | File: ${currentFile.name}`}
+        {error && ` | Error: ${error}`}
+      </div>
+
       <div className="text-center">
         <h1 className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
           AI Data Assistant
@@ -120,6 +139,12 @@ export function AIAssistant() {
         </div>
       </div>
 
+      {error && (
+        <div className="p-4 bg-red-500/10 border border-red-500 rounded-lg text-red-500">
+          {error}
+        </div>
+      )}
+
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: response ? 1 : 0.5, y: 0 }}
@@ -134,7 +159,7 @@ export function AIAssistant() {
         )}
         {!loading && !response && (
           <div className="text-center py-8 text-muted-foreground">
-            Upload a file and ask a question to get started.
+            {currentFile ? 'Ask a question about your data.' : 'Upload a file and ask a question to get started.'}
           </div>
         )}
         {!loading && response && (
@@ -158,7 +183,6 @@ export function AIAssistant() {
                       variant="outline"
                       className="transition-all hover:scale-105 hover:bg-primary/10"
                       onClick={() => {
-                        // TODO: Implement chart building from suggestion
                         console.log('Build chart:', suggestion);
                       }}
                     >
