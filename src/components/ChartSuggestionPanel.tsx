@@ -1,14 +1,17 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { ChartRenderer } from '@/components/ChartRenderer';
+import { Button } from './ui/button';
+import { ChartRenderer } from './charts/ChartRenderer';
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
+import { cn } from '../lib/utils';
+import { ChartConfig, ChartTemplate, ChartType } from '../lib/charts/types';
+import { Type } from '../lib/data/types';
+import { chartTemplates } from '../lib/charts/templates';
 
 interface ChartSuggestionPanelProps {
   suggestions: string[];
-  onSuggestionClick: (suggestion: string) => void;
+  onSuggestionClick: (suggestion: string, chartConfig: ChartConfig) => void;
   visible: boolean;
   data?: any[];
   columns?: string[];
@@ -25,9 +28,40 @@ export function ChartSuggestionPanel({
 
   if (!visible || suggestions.length === 0) return null;
 
-  // Determine x and y axes based on data
-  const xAxis = columns?.[0] || '';
-  const yAxis = columns?.[1] || '';
+  const generateChartConfig = (suggestion: string): ChartConfig | null => {
+    if (!data || !columns) return null;
+
+    // Определяем тип графика на основе текста предложения
+    let chartType: ChartType = 'bar';
+    if (suggestion.toLowerCase().includes('pie')) chartType = 'pie';
+    else if (suggestion.toLowerCase().includes('scatter')) chartType = 'scatter';
+    else if (suggestion.toLowerCase().includes('line')) chartType = 'line';
+    else if (suggestion.toLowerCase().includes('area')) chartType = 'area';
+
+    const template = chartTemplates.find((t: ChartTemplate) => t.type === chartType);
+    if (!template) return null;
+
+    // Определяем оси на основе данных
+    const xAxis = columns[0];
+    const yAxis = columns[1];
+
+    return {
+      type: chartType,
+      template,
+      encoding: {
+        x: { field: xAxis, type: Type.String },
+        y: { field: yAxis, type: Type.Number }
+      },
+      data: {
+        columns: columns.map(name => ({
+          name,
+          type: Type.String,
+          values: data.map(row => row[name])
+        })),
+        rows: data
+      }
+    };
+  };
 
   return (
     <AnimatePresence>
@@ -65,7 +99,10 @@ export function ChartSuggestionPanel({
                 )}
                 onClick={() => {
                   setSelectedChart(suggestion);
-                  onSuggestionClick(suggestion);
+                  const config = generateChartConfig(suggestion);
+                  if (config) {
+                    onSuggestionClick(suggestion, config);
+                  }
                 }}
               >
                 <span className="truncate">{suggestion}</span>
@@ -81,11 +118,22 @@ export function ChartSuggestionPanel({
             className="mt-4 bg-background/30 rounded-xl p-3"
           >
             <ChartRenderer
-              data={data}
-              columns={columns}
-              chartType={selectedChart.toLowerCase().includes('pie') ? 'pie' : 'bar'}
-              xAxis={xAxis}
-              yAxis={yAxis}
+              config={generateChartConfig(selectedChart) || {
+                type: 'bar',
+                template: chartTemplates[0],
+                encoding: {
+                  x: { field: columns[0], type: Type.String },
+                  y: { field: columns[1], type: Type.Number }
+                },
+                data: {
+                  columns: columns.map(name => ({
+                    name,
+                    type: Type.String,
+                    values: data.map(row => row[name])
+                  })),
+                  rows: data
+                }
+              }}
             />
           </motion.div>
         )}

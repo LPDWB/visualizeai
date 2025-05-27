@@ -200,94 +200,74 @@ export function AIAssistant() {
     }
   };
 
+  const handleSuggestionClick = (suggestion: string, chartConfig: ChartConfig) => {
+    if (!currentFile) return;
+    
+    const chartId = createChartFromAIConfig(chartConfig, chartConfig.data);
+    if (chartId) {
+      setActiveChartId(chartId);
+      setShowVisualizations(false);
+    }
+  };
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[60%_40%] gap-4 h-[calc(100vh-12rem)]">
-      {/* Main Chat Area */}
-      <motion.div 
-        className="flex flex-col bg-background/50 backdrop-blur border border-primary/10 rounded-2xl p-4 shadow-lg"
-        layout
-      >
-        <div className="flex items-center justify-between mb-4">
-          <ModelDropdown value={selectedModel} onChange={setSelectedModel} />
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={chatContainerRef}>
+        {messages.map((message, i) => (
+          <div key={i} className="space-y-4">
+            <MessageBubble
+              content={message.content}
+              role={message.role}
+              timestamp={message.timestamp}
+              isLast={i === messages.length - 1}
+            />
+            {message.chartConfig && (
+              <div className="ml-4">
+                <AIChartDisplay
+                  chartId={activeChartId || ''}
+                  onClose={() => setActiveChartId(null)}
+                />
+              </div>
+            )}
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="p-4 border-t">
+        <div className="flex gap-2">
+          <ModelDropdown
+            value={selectedModel}
+            onChange={setSelectedModel}
+          />
           <FileUploader onFileUpload={handleFileUpload} />
         </div>
-
-        {/* Chat Messages */}
-        <div 
-          ref={chatContainerRef}
-          className="flex-1 overflow-y-auto space-y-4 mb-4 pr-4"
-        >
-          <AnimatePresence>
-            {messages.map((message, index) => (
-              <div key={message.timestamp} className="space-y-4">
-                <MessageBubble
-                  content={message.content}
-                  role={message.role}
-                  timestamp={message.timestamp}
-                  isLast={index === messages.length - 1}
-                />
-                {message.chartConfig && activeChartId && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 20 }}
-                  >
-                    <AIChartDisplay
-                      chartId={activeChartId}
-                      onClose={() => setActiveChartId(null)}
-                    />
-                  </motion.div>
-                )}
-              </div>
-            ))}
-          </AnimatePresence>
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input Area */}
-        <div className="relative">
-          <textarea
-            className="w-full rounded-xl border border-input bg-background/50 backdrop-blur px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary min-h-[60px] resize-none"
-            placeholder={currentFile ? "Ask about your data..." : "Upload a file to get started..."}
+        <div className="mt-4 flex gap-2">
+          <input
+            type="text"
             value={input}
-            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
-            disabled={loading || !currentFile}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleAskAI();
-              }
-            }}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAskAI()}
+            placeholder="Ask about your data..."
+            className="flex-1 px-4 py-2 rounded-lg bg-background/50 backdrop-blur border border-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            disabled={!currentFile || loading}
           />
-          <Button 
-            onClick={handleAskAI} 
-            disabled={loading || !input.trim() || !currentFile} 
-            className="absolute right-2 bottom-2 transition-all hover:scale-[1.02]"
+          <Button
+            onClick={handleAskAI}
+            disabled={!currentFile || loading || !input.trim()}
           >
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <span className="animate-spin">⚡</span>
-                Thinking...
-              </span>
-            ) : 'Send'}
+            {loading ? 'Thinking...' : 'Ask'}
           </Button>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Visualization Panel */}
-      <AnimatePresence>
-        {showVisualizations && (
-          <ChartSuggestionPanel
-            suggestions={messages[messages.length - 1]?.suggestions || []}
-            onSuggestionClick={(suggestion) => {
-              console.log('Build chart:', suggestion);
-            }}
-            visible={showVisualizations}
-            data={currentFile?.data}
-            columns={currentFile?.columns}
-          />
-        )}
-      </AnimatePresence>
+      <ChartSuggestionPanel
+        suggestions={messages[messages.length - 1]?.suggestions || []}
+        onSuggestionClick={handleSuggestionClick}
+        visible={showVisualizations}
+        data={currentFile?.data}
+        columns={currentFile?.columns}
+      />
     </div>
   );
 } 
