@@ -6,8 +6,8 @@ export interface DataRow {
 
 export interface FileData {
   name: string;
+  data: any[];
   columns: string[];
-  data: DataRow[];
   timestamp: number;
 }
 
@@ -15,6 +15,16 @@ export interface ChartProps {
   data: DataRow[];
   xAxis: string;
   yAxis: string;
+}
+
+export interface AIResponse {
+  result: string;
+  suggestions?: string[];
+}
+
+export interface FileParserResult {
+  data: any[];
+  columns: string[];
 }
 
 declare global {

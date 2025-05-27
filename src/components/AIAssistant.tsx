@@ -4,7 +4,7 @@ import { FileUploader } from '@/components/FileUploader';
 import { useStore } from '@/store/useStore';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { FileData } from '@/types/file';
+import { FileData, AIResponse } from '@/types';
 
 export function AIAssistant() {
   const { currentFile, addToHistory, setCurrentFile, fileHistory } = useStore();
@@ -14,12 +14,11 @@ export function AIAssistant() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
 
   const handleFileUpload = async (file: File) => {
-    // Reuse existing logic for parsing and storing file
     if (!file) return;
     const { parseFile } = await import('@/utils/fileParser');
     try {
       const { data, columns } = await parseFile(file);
-      const fileData = {
+      const fileData: FileData = {
         name: file.name,
         data,
         columns,
@@ -28,7 +27,7 @@ export function AIAssistant() {
       setCurrentFile(fileData);
       addToHistory(fileData);
     } catch (e) {
-      // handle error
+      console.error('Error parsing file:', e);
     }
   };
 
@@ -54,7 +53,8 @@ export function AIAssistant() {
         .map((line: string) => line.trim());
       setSuggestions(extractedSuggestions);
     } catch (e) {
-      setResponse('Error contacting AI.');
+      console.error('Error contacting AI:', e);
+      setResponse('Error contacting AI. Please try again.');
     } finally {
       setLoading(false);
     }
