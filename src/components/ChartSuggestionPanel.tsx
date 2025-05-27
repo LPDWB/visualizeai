@@ -36,7 +36,7 @@ export function ChartSuggestionPanel({
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: 20 }}
         transition={{ type: "spring", stiffness: 200, damping: 20 }}
-        className="w-80 bg-background/50 backdrop-blur border border-primary/10 rounded-lg p-4 space-y-4"
+        className="w-full max-w-[400px] bg-background/50 backdrop-blur border border-primary/10 rounded-2xl p-4 space-y-4 shadow-lg"
       >
         <motion.h3 
           initial={{ opacity: 0, y: -10 }}
@@ -60,14 +60,15 @@ export function ChartSuggestionPanel({
                 variant="outline"
                 className={cn(
                   "w-full justify-start transition-all hover:scale-[1.02] hover:bg-primary/10",
-                  selectedChart === suggestion && "bg-primary/20"
+                  selectedChart === suggestion && "bg-primary/20",
+                  "text-left line-clamp-2"
                 )}
                 onClick={() => {
                   setSelectedChart(suggestion);
                   onSuggestionClick(suggestion);
                 }}
               >
-                {suggestion}
+                <span className="truncate">{suggestion}</span>
               </Button>
             </motion.div>
           ))}
@@ -77,7 +78,7 @@ export function ChartSuggestionPanel({
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-4"
+            className="mt-4 bg-background/30 rounded-xl p-3"
           >
             <ChartRenderer
               data={data}

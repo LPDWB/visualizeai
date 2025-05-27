@@ -7,14 +7,14 @@ export const MODELS = [
   { 
     id: 'anthropic/claude-3-haiku', 
     name: 'Claude 3 Haiku', 
-    description: '⚡ Fast & Smart',
+    description: 'Fast & Smart',
     icon: '⚡'
   },
   { 
     id: 'mistralai/mixtral-8x7b-instruct', 
     name: 'Mixtral', 
-    description: '🚀 Ultra Fast',
-    icon: '🚀'
+    description: 'Ultra Fast',
+    icon: '⚡'
   }
 ];
 
@@ -45,10 +45,10 @@ export function ModelDropdown({ value, onChange }: ModelDropdownProps) {
         {MODELS.map(model => (
           <SelectItem key={model.id} value={model.id}>
             <div className="flex items-center gap-2">
-              <span className="text-lg">{model.icon}</span>
+              <span className="text-sm text-muted-foreground">{model.icon}</span>
               <div className="flex flex-col">
-                <span className="font-medium">{model.name}</span>
-                <span className="text-xs text-muted-foreground">{model.description}</span>
+                <span className="font-medium leading-none">{model.name}</span>
+                <span className="text-xs text-muted-foreground mt-1">{model.description}</span>
               </div>
             </div>
           </SelectItem>

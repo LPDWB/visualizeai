@@ -133,13 +133,11 @@ export function AIAssistant() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] gap-4">
+    <div className="grid grid-cols-1 lg:grid-cols-[60%_40%] gap-4 h-[calc(100vh-12rem)]">
       {/* Main Chat Area */}
       <motion.div 
-        className={cn(
-          "flex-1 flex flex-col transition-all duration-300",
-          showVisualizations && "mr-80"
-        )}
+        className="flex flex-col bg-background/50 backdrop-blur border border-primary/10 rounded-2xl p-4 shadow-lg"
+        layout
       >
         <div className="flex items-center justify-between mb-4">
           <ModelDropdown value={selectedModel} onChange={setSelectedModel} />
@@ -168,7 +166,7 @@ export function AIAssistant() {
         {/* Input Area */}
         <div className="relative">
           <textarea
-            className="w-full rounded-lg border border-input bg-background/50 backdrop-blur px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary min-h-[60px] resize-none"
+            className="w-full rounded-xl border border-input bg-background/50 backdrop-blur px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary min-h-[60px] resize-none"
             placeholder={currentFile ? "Ask about your data..." : "Upload a file to get started..."}
             value={input}
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
@@ -196,15 +194,19 @@ export function AIAssistant() {
       </motion.div>
 
       {/* Visualization Panel */}
-      <ChartSuggestionPanel
-        suggestions={messages[messages.length - 1]?.suggestions || []}
-        onSuggestionClick={(suggestion) => {
-          console.log('Build chart:', suggestion);
-        }}
-        visible={showVisualizations}
-        data={currentFile?.data}
-        columns={currentFile?.columns}
-      />
+      <AnimatePresence>
+        {showVisualizations && (
+          <ChartSuggestionPanel
+            suggestions={messages[messages.length - 1]?.suggestions || []}
+            onSuggestionClick={(suggestion) => {
+              console.log('Build chart:', suggestion);
+            }}
+            visible={showVisualizations}
+            data={currentFile?.data}
+            columns={currentFile?.columns}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 } 
